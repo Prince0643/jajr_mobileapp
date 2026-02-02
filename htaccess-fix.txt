@@ -1,0 +1,20 @@
+# Add to your production .htaccess file
+
+# Enable proper POST handling
+php_flag register_globals off
+php_value max_input_vars 3000
+php_value post_max_size 10M
+php_value upload_max_filesize 10M
+
+# CORS headers
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+
+# Handle preflight requests
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Ensure PHP can read raw input
+php_flag enable_post_data_reading on
