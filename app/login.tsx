@@ -82,7 +82,6 @@ const LoginScreen: React.FC = () => {
       
       if (response.success && response.user_data) {
         await SessionManager.saveUser(response.user_data, rememberMe);
-        Alert.alert('Success', `Welcome, ${response.user_data.first_name}!`);
         router.replace('/(tabs)/home');
       } else {
         Alert.alert('Login Failed', response.message || 'Invalid credentials');

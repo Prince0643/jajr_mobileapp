@@ -1,4 +1,4 @@
-import { BranchList, EmptyState, LoadingState, SyncStatus } from '@/components';
+import { BranchList, EmptyState, LoadingState, LogoutModal, SyncStatus } from '@/components';
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
 import { ApiService } from '@/services/api';
 import { Branch, Employee } from '@/types';
@@ -12,7 +12,7 @@ import {
     Text,
     TouchableOpacity,
     View,
-    useColorScheme
+    useColorScheme,
 } from 'react-native';
 
 const HomeScreen: React.FC = () => {
@@ -22,6 +22,7 @@ const HomeScreen: React.FC = () => {
   const [presentMap, setPresentMap] = useState<Map<number, string>>(new Map());
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState('');
+  const [logoutVisible, setLogoutVisible] = useState(false);
   
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -205,22 +206,14 @@ const HomeScreen: React.FC = () => {
     }
   }, []);
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await SessionManager.clearSession();
-            router.replace('/login');
-          },
-        },
-      ]
-    );
+  const handleLogout = () => {
+    setLogoutVisible(true);
+  };
+
+  const confirmLogout = async () => {
+    setLogoutVisible(false);
+    await SessionManager.clearSession();
+    router.replace('/login');
   };
 
   const getTotalPresentCount = () => {
@@ -237,6 +230,11 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <LogoutModal
+        visible={logoutVisible}
+        onCancel={() => setLogoutVisible(false)}
+        onConfirm={confirmLogout}
+      />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>

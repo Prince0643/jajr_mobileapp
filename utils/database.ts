@@ -21,6 +21,25 @@ export interface EmployeeRecord {
 
 class DatabaseHelper {
   private db: SQLite.SQLiteDatabase | null = null;
+  private initPromise: Promise<void> | null = null;
+
+  private async ensureDb(): Promise<SQLite.SQLiteDatabase> {
+    if (this.db) return this.db;
+
+    if (!this.initPromise) {
+      this.initPromise = this.initDatabase().finally(() => {
+        this.initPromise = null;
+      });
+    }
+
+    await this.initPromise;
+
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    return this.db;
+  }
 
   async initDatabase(): Promise<void> {
     try {
@@ -85,10 +104,10 @@ class DatabaseHelper {
 
   // Branch operations
   async getAllBranches(): Promise<string[]> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
     try {
-      const result = await this.db.getAllAsync<{ branch_name: string }>(
+      const result = await db.getAllAsync<{ branch_name: string }>(
         'SELECT DISTINCT branch_name FROM branches ORDER BY branch_name'
       );
       return result.map(row => row.branch_name);
@@ -99,10 +118,10 @@ class DatabaseHelper {
   }
 
   async addBranch(branchName: string): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
     const now = new Date().toISOString();
-    await this.db.runAsync(
+    await db.runAsync(
       'INSERT OR IGNORE INTO branches (branch_name, created_at, updated_at) VALUES (?, ?, ?)',
       [branchName, now, now]
     );
@@ -110,10 +129,10 @@ class DatabaseHelper {
 
   // Employee operations
   async getEmployeesByBranch(branchName: string): Promise<Employee[]> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
     try {
-      const result = await this.db.getAllAsync<EmployeeRecord>(
+      const result = await db.getAllAsync<EmployeeRecord>(
         'SELECT * FROM employees WHERE branch_name = ? ORDER BY first_name, last_name',
         [branchName]
       );
@@ -132,10 +151,10 @@ class DatabaseHelper {
   }
 
   async addOrUpdateEmployee(employee: Employee): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
     const now = new Date().toISOString();
-    await this.db.runAsync(`
+    await db.runAsync(`
       INSERT OR REPLACE INTO employees 
       (employee_id, employee_code, first_name, last_name, branch_name, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, 
@@ -155,10 +174,10 @@ class DatabaseHelper {
 
   // Attendance operations
   async saveAttendanceRecord(record: Omit<AttendanceRecord, 'id'>): Promise<number> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
     try {
-      const result = await this.db.runAsync(
+      const result = await db.runAsync(
         `INSERT INTO attendance (employee_id, branch_name, timestamp, synced, action)
          VALUES (?, ?, ?, ?, ?)`,
         [record.employee_id, record.branch_name, record.timestamp, record.synced ? 1 : 0, record.action]
@@ -171,10 +190,10 @@ class DatabaseHelper {
   }
 
   async getUnsyncedAttendanceRecords(): Promise<AttendanceRecord[]> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
     try {
-      const result = await this.db.getAllAsync<AttendanceRecord>(
+      const result = await db.getAllAsync<AttendanceRecord>(
         'SELECT * FROM attendance WHERE synced = 0 ORDER BY timestamp'
       );
       return result.map(record => ({
@@ -188,20 +207,20 @@ class DatabaseHelper {
   }
 
   async markAttendanceAsSynced(recordId: number): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
-    await this.db.runAsync(
+    await db.runAsync(
       'UPDATE attendance SET synced = 1 WHERE id = ?',
       [recordId]
     );
   }
 
   async getTodayAttendance(employeeId: number): Promise<AttendanceRecord | null> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
     const today = new Date().toISOString().split('T')[0];
     try {
-      const result = await this.db.getFirstAsync<AttendanceRecord>(
+      const result = await db.getFirstAsync<AttendanceRecord>(
         `SELECT * FROM attendance 
          WHERE employee_id = ? AND date(timestamp) = ? 
          ORDER BY timestamp DESC LIMIT 1`,
@@ -215,9 +234,9 @@ class DatabaseHelper {
   }
 
   async deleteAttendanceRecord(recordId: number): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
-    await this.db.runAsync(
+    await db.runAsync(
       'DELETE FROM attendance WHERE id = ?',
       [recordId]
     );
@@ -225,10 +244,10 @@ class DatabaseHelper {
 
   // Sync operations
   async getPendingSyncCount(): Promise<number> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
     try {
-      const result = await this.db.getFirstAsync<{ count: number }>(
+      const result = await db.getFirstAsync<{ count: number }>(
         'SELECT COUNT(*) as count FROM attendance WHERE synced = 0'
       );
       return result?.count || 0;
@@ -240,9 +259,9 @@ class DatabaseHelper {
 
   // Utility operations
   async clearAllData(): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
     
-    await this.db.execAsync(`
+    await db.execAsync(`
       DELETE FROM attendance;
       DELETE FROM employees;
       DELETE FROM branches;

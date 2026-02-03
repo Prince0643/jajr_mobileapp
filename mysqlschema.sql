@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jan 31, 2026 at 02:36 AM
+-- Generation Time: Feb 02, 2026 at 07:45 AM
 -- Server version: 8.4.7
 -- PHP Version: 8.3.28
 
@@ -39,69 +39,15 @@ CREATE TABLE IF NOT EXISTS `activity_logs` (
   KEY `idx_user_id` (`user_id`),
   KEY `idx_action` (`action`),
   KEY `idx_created_at` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `activity_logs`
 --
 
 INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `details`, `ip_address`, `created_at`) VALUES
-(1, 1, 'Test Action', 'This is a test log entry from the system', 'Unknown', '2026-01-20 02:55:16'),
-(2, 1, 'System Test', 'Testing the logging system functionality', 'Unknown', '2026-01-20 02:55:16'),
-(3, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '192.168.100.14', '2026-01-20 08:18:08'),
-(4, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-21 00:55:12'),
-(5, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-22 05:34:44'),
-(6, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-23 00:10:34'),
-(7, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '::1', '2026-01-23 01:49:40'),
-(8, 6, 'Logged In', 'User Super Admin logged in from branch: Pias (Office)', '120.29.91.12', '2026-01-23 04:57:34'),
-(9, 6, 'Logged In', 'User Super Admin logged in from branch: Pias (Office)', '110.54.154.191', '2026-01-23 05:13:29'),
-(10, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '49.150.105.17', '2026-01-23 05:23:01'),
-(11, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-24 00:22:31'),
-(12, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-24 02:04:04'),
-(13, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-24 02:04:30'),
-(14, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-24 02:05:35'),
-(15, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '120.29.91.12', '2026-01-26 00:22:24'),
-(16, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '120.29.91.12', '2026-01-26 02:40:52'),
-(17, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-26 02:43:11'),
-(18, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-26 04:40:49'),
-(19, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-26 04:47:17'),
-(20, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-27 01:27:23'),
-(21, 73, 'Logged In', 'User Marc Arzadon logged in from branch: Main Branch', '120.29.91.12', '2026-01-27 03:09:04'),
-(22, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-27 03:16:07'),
-(23, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-27 03:16:44'),
-(24, 17, 'Logged In', 'User ROLLY BALTAZAR logged in from branch: BCDA', '::1', '2026-01-27 03:18:19'),
-(25, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-27 03:41:15'),
-(26, 11, 'Logged In', 'User AARIZ MARLOU logged in from branch: BCDA', '::1', '2026-01-27 04:07:43'),
-(27, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '120.29.91.12', '2026-01-27 04:22:58'),
-(28, 18, 'Logged In', 'User DONG BAUTISTA logged in from branch: BCDA', '::1', '2026-01-27 04:30:01'),
-(29, 73, 'Logged In', 'User Marc Arzadon logged in from branch: Main Branch', '120.29.91.12', '2026-01-27 04:30:16'),
-(30, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-27 04:50:01'),
-(31, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-27 06:47:55'),
-(32, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-28 00:10:42'),
-(33, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-28 05:03:50'),
-(34, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '192.168.100.21', '2026-01-28 07:58:58'),
-(35, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '120.29.91.12', '2026-01-28 08:03:46'),
-(36, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '120.29.91.12', '2026-01-28 08:12:11'),
-(37, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-29 00:30:13'),
-(38, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '::1', '2026-01-29 01:12:08'),
-(39, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-29 02:23:00'),
-(40, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '120.29.91.12', '2026-01-29 03:33:48'),
-(41, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '::1', '2026-01-29 03:36:10'),
-(42, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '::1', '2026-01-29 05:13:39'),
-(43, 6, 'Logged In', 'User Super Admin logged in from branch: Panicsican', '::1', '2026-01-29 05:32:56'),
-(44, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-29 23:54:29'),
-(45, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '120.29.91.12', '2026-01-30 00:18:37'),
-(46, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-30 01:45:19'),
-(47, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '120.29.91.12', '2026-01-30 02:50:36'),
-(48, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-01-30 02:58:26'),
-(49, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '::1', '2026-01-30 05:02:32'),
-(50, 6, 'Logged In', 'User Super Admin logged in from branch: Test', '::1', '2026-01-30 06:18:40'),
-(51, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-30 06:41:25'),
-(52, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-31 00:29:57'),
-(53, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-31 00:59:15'),
-(54, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '::1', '2026-01-31 01:33:52'),
-(55, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-31 02:06:25'),
-(56, 6, 'Logged In', 'User Super Admin logged in from branch: STO. Rosario', '::1', '2026-01-31 02:10:13');
+(58, 6, 'Logged In', 'User Super Admin logged in from branch: Main Branch', '::1', '2026-01-31 07:57:51'),
+(59, 6, 'Logged In', 'User Super Admin logged in from branch: BCDA', '::1', '2026-02-02 00:36:47');
 
 -- --------------------------------------------------------
 
@@ -113,7 +59,7 @@ DROP TABLE IF EXISTS `attendance`;
 CREATE TABLE IF NOT EXISTS `attendance` (
   `id` int NOT NULL AUTO_INCREMENT,
   `employee_id` int NOT NULL,
-  `status` enum('Present','Absent') NOT NULL,
+  `status` enum('Present','Late','Absent','System') DEFAULT NULL,
   `branch_name` varchar(50) NOT NULL,
   `attendance_date` date NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -121,17 +67,83 @@ CREATE TABLE IF NOT EXISTS `attendance` (
   `is_auto_absent` tinyint(1) DEFAULT '0',
   `auto_absent_applied` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=358 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=424 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `attendance`
 --
 
 INSERT INTO `attendance` (`id`, `employee_id`, `status`, `branch_name`, `attendance_date`, `created_at`, `updated_at`, `is_auto_absent`, `auto_absent_applied`) VALUES
+(423, 1, 'Absent', 'Main', '2026-02-02', '2026-02-02 02:08:38', NULL, 0, 0),
+(421, 73, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(419, 71, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(418, 70, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(417, 69, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(415, 67, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(408, 60, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(404, 56, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(402, 54, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(400, 52, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(399, 51, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(396, 48, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(395, 47, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(394, 46, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(392, 44, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(391, 43, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(390, 42, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(389, 41, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(388, 40, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(387, 39, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(382, 34, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(381, 33, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(379, 31, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(378, 30, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(377, 29, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(366, 13, 'Present', 'Testing', '2026-02-02', '2026-02-02 01:10:15', '2026-02-02 03:03:30', 0, 0),
+(365, 12, 'Present', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', '2026-02-02 01:36:52', 0, 0),
+(364, 11, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(363, 15, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(362, 14, 'Present', 'Testing', '2026-02-02', '2026-02-02 01:10:15', '2026-02-02 03:03:56', 0, 0),
+(361, 18, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(360, 17, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(359, 16, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(358, 6, 'Present', 'BCDA', '2026-02-02', '2026-02-02 00:36:47', NULL, 0, 0),
 (357, 0, '', 'System', '2026-01-31', '2026-01-31 01:00:15', NULL, 0, 1),
-(356, 73, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
+(356, 73, 'Present', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
 (355, 72, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
 (354, 71, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
+(422, 0, '', 'System', '2026-02-02', '2026-02-02 01:10:15', NULL, 0, 1),
+(420, 72, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(416, 68, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(414, 66, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(413, 65, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(412, 64, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(411, 63, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(410, 62, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(409, 61, 'Present', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', '2026-02-02 05:32:12', 0, 0),
+(407, 59, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(406, 58, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(405, 57, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(403, 55, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(401, 53, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(398, 50, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(397, 49, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(393, 45, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(386, 38, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(385, 37, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(384, 36, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(383, 35, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(380, 32, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(376, 28, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(375, 27, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(374, 26, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(373, 25, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(372, 24, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(371, 23, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(370, 22, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(369, 21, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(368, 20, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
+(367, 19, 'Absent', 'Sto. Rosario', '2026-02-02', '2026-02-02 01:10:15', NULL, 1, 0),
 (353, 70, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
 (352, 69, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
 (351, 68, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
@@ -182,7 +194,7 @@ INSERT INTO `attendance` (`id`, `employee_id`, `status`, `branch_name`, `attenda
 (306, 21, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
 (305, 20, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
 (304, 19, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
-(303, 12, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
+(303, 12, 'Present', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', '2026-01-31 03:49:39', 0, 0),
 (302, 11, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
 (301, 15, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
 (300, 18, 'Absent', 'Sto. Rosario', '2026-01-31', '2026-01-31 01:00:15', NULL, 1, 0),
@@ -192,7 +204,7 @@ INSERT INTO `attendance` (`id`, `employee_id`, `status`, `branch_name`, `attenda
 (296, 13, 'Present', 'Sto. Rosario', '2026-01-31', '2026-01-31 00:30:23', NULL, 0, 0),
 (295, 62, 'Present', 'Testing', '2026-01-31', '2026-01-31 00:30:21', '2026-01-31 00:59:22', 0, 0),
 (294, 14, 'Present', 'Sto. Rosario', '2026-01-31', '2026-01-31 00:30:18', NULL, 0, 0),
-(293, 6, 'Present', 'STO. Rosario', '2026-01-31', '2026-01-31 00:29:57', '2026-01-31 02:10:13', 0, 0),
+(293, 6, 'Present', 'Main Branch', '2026-01-31', '2026-01-31 00:29:57', '2026-01-31 07:57:51', 0, 0),
 (292, 0, '', 'System', '2026-01-30', '2026-01-30 07:00:45', NULL, 0, 1),
 (291, 73, 'Absent', 'Sto. Rosario', '2026-01-30', '2026-01-30 07:00:45', NULL, 1, 0),
 (290, 72, 'Absent', 'Sto. Rosario', '2026-01-30', '2026-01-30 07:00:45', NULL, 1, 0),
@@ -302,7 +314,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
   `upload_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_employee_doc_type` (`employee_id`,`document_type`)
-) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `documents`
@@ -312,7 +324,8 @@ INSERT INTO `documents` (`id`, `employee_id`, `document_name`, `document_type`, 
 (2, 12, '97db62b8-c665-46f5-b4cb-2bed698b5b25.jpeg', 'tin', 'image', '../uploads/12_20260124020640_97db62b8-c665-46f5-b4cb-2bed698b5b25.jpeg', '2026-01-24 02:06:40'),
 (3, 12, '12_20260124020554_97db62b8-c665-46f5-b4cb-2bed698b5b25.jpeg', 'philhealth', 'image', '../uploads/12_20260124035218_12_20260124020554_97db62b8-c665-46f5-b4cb-2bed698b5b25.jpeg', '2026-01-24 03:52:18'),
 (4, 14, '615345752_3817950261843285_1368667470747170934_n.jpg', 'employment_certificate', 'image', '../uploads/14_20260124081600_615345752_3817950261843285_1368667470747170934_n.jpg', '2026-01-24 08:16:00'),
-(5, 14, '97db62b8-c665-46f5-b4cb-2bed698b5b25.jpeg', 'tin', 'image', '../uploads/14_20260124081609_97db62b8-c665-46f5-b4cb-2bed698b5b25.jpeg', '2026-01-24 08:16:09');
+(5, 14, '97db62b8-c665-46f5-b4cb-2bed698b5b25.jpeg', 'tin', 'image', '../uploads/14_20260124081609_97db62b8-c665-46f5-b4cb-2bed698b5b25.jpeg', '2026-01-24 08:16:09'),
+(6, 61, 'WhatsApp Image 2026-02-02 at 8.14.05 AM.jpeg', 'tin', 'image', '../uploads/61_20260202040545_WhatsAppImage2026-02-02at8.14.05AM.jpeg', '2026-02-02 04:05:45');
 
 -- --------------------------------------------------------
 
@@ -350,10 +363,10 @@ INSERT INTO `employees` (`id`, `employee_code`, `first_name`, `middle_name`, `la
 (17, 'E0007', 'ROLLY', NULL, 'BALTAZAR', 'rolly.baltazar@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 500.00),
 (18, 'E0008', 'DONG', NULL, 'BAUTISTA', 'dong.bautista@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (14, 'E0004', 'NOEL', NULL, 'ARIZ', 'noel.ariz@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 550.00),
-(6, 'SA001', 'Super', NULL, 'Admin', 'admin@jajrconstruction.com', 'Sto. Rosario', '1c7185fa20725ab79607c05a7a8d0c5f', 'Admin', 'Active', '2026-01-16 02:26:58', '2026-01-30 07:31:27', 'profile_697c5e4f561221.04957439.png', 600.00),
+(6, 'SA001', 'Super', NULL, 'Admin', 'admin@jajrconstruction.com', 'Sto. Rosario', '1c7185fa20725ab79607c05a7a8d0c5f', 'Admin', 'Active', '2026-01-16 02:26:58', '2026-01-31 06:22:18', 'profile_697d9f9a1f47a8.96968556.png', 600.00),
 (15, 'E0005', 'DANIEL', NULL, 'BACHILLER', 'daniel.bachiller@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (11, 'E0001', 'AARIZ', NULL, 'MARLOU', 'aariz.marlou@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
-(12, 'E0002', 'CESAR', NULL, 'ABUBO', 'cesar.abubo@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-30 07:29:41', 'profile_697c5de5e20034.53039530.png', 600.00),
+(12, 'E0002', 'CESAR', NULL, 'ABUBO', 'cesar.abubo@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-31 05:42:05', 'profile_697d962d450256.84780797.png', 600.00),
 (13, 'E0003', 'MARLON', NULL, 'AGUILAR', 'marlon.aguilar@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (19, 'E0009', 'JANLY', NULL, 'BELINO', 'janly.belino@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (20, 'E0010', 'MENUEL', NULL, 'BENITEZ', 'menuel.benitez@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
@@ -397,14 +410,14 @@ INSERT INTO `employees` (`id`, `employee_code`, `first_name`, `middle_name`, `la
 (58, 'E0048', 'HILMAR', NULL, 'TATUNAY', 'hilmar.tatunay@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (59, 'E0049', 'KENNETH JOHN', NULL, 'UGAS', 'kennethjohn.ugas@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (60, 'E0050', 'CLYDE JUSTINE', NULL, 'VASADRE', 'clydejustine.vasadre@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 500.00),
-(61, 'E0051', 'CARL JHUNELL', NULL, 'ACAS', 'carljhunell.acas@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-30 07:29:59', 'profile_697c5df7e77167.26273040.png', 600.00),
+(61, 'E0051', 'CARL JHUNELL', NULL, 'ACAS', 'carljhunell.acas@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-31 06:22:11', 'profile_697d9f9350dad3.88439854.png', 600.00),
 (62, 'E0052', 'ELAINE MARICRIS T.', NULL, 'AGUILAR', 'elainemaricris.aguilar@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-30 07:31:38', 'profile_697c5e5a1459b9.21959357.png', 600.00),
 (63, 'E0053', 'JOYLENE F.', NULL, 'BALANON', 'joylene.balanon@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (64, 'E0054', 'AVERIE L.', NULL, 'CABUSORA', 'averie.cabusora@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (65, 'E0055', 'JOHN JULIUS', NULL, 'ECHAGUE', 'johnjulius.echague@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (66, 'E0056', 'JOHN KENEDY', NULL, 'LUCAS', 'johnkenedy.lucas@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (67, 'E0057', 'RONALYN', NULL, 'MALLARE', 'ronalyn.mallare@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
-(68, 'E0058', 'MICHELLE F.', NULL, 'NORIAL', 'michelle.norial@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
+(68, 'ENG - 2026 - 0001', 'MICHELLE F.', NULL, 'NORIAL', 'michelle.norial@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-02 03:43:02', NULL, 600.00),
 (69, 'E0059', 'WINNIELYN KAYE M.', NULL, 'OLARTE', 'winnielynkaye.olarte@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (70, 'E0060', 'FLORIAN JANE', NULL, 'PERALTA', 'florianjane.peralta@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
 (71, 'E0061', 'DANIEL', NULL, 'RILLERA', 'daniel.rillera@example.com', 'Sto. Rosario', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-01-29 03:16:06', NULL, 600.00),
@@ -494,16 +507,18 @@ CREATE TABLE IF NOT EXISTS `rate_limit` (
   `timestamp` int NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_ip_timestamp` (`ip`,`timestamp`)
-) ENGINE=MyISAM AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `rate_limit`
 --
 
 INSERT INTO `rate_limit` (`id`, `ip`, `user_id`, `timestamp`) VALUES
-(40, '::1', 0, 1769741404),
-(39, '::1', 0, 1769741401),
-(38, '::1', 0, 1769741399);
+(56, '::1', 0, 1770005145),
+(55, '::1', 0, 1770005136),
+(54, '::1', 0, 1770005134),
+(53, '::1', 0, 1770005132),
+(52, '::1', 0, 1770005130);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

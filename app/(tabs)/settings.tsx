@@ -1,35 +1,33 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { LogoutModal } from '@/components';
+import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
+import { SessionManager } from '@/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { SessionManager } from '@/utils';
+import React, { useState } from 'react';
+import {
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SettingsScreen: React.FC = () => {
   const router = useRouter();
+  const [logoutVisible, setLogoutVisible] = useState(false);
+  const colors = Colors.dark;
+  const styles = createStyles(colors);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await SessionManager.clearSession();
-            router.replace('/login');
-          },
-        },
-      ]
-    );
+    setLogoutVisible(true);
+  };
+
+  const confirmLogout = async () => {
+    setLogoutVisible(false);
+    await SessionManager.clearSession();
+    router.replace('/login');
   };
 
   const settingsOptions = [
@@ -66,7 +64,12 @@ const SettingsScreen: React.FC = () => {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <LogoutModal
+        visible={logoutVisible}
+        onCancel={() => setLogoutVisible(false)}
+        onConfirm={confirmLogout}
+      />
       <ScrollView style={styles.content}>
         <Text style={styles.title}>Settings</Text>
         
@@ -78,13 +81,13 @@ const SettingsScreen: React.FC = () => {
               onPress={option.onPress}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name={option.icon as any} size={24} color="#007AFF" />
+                <Ionicons name={option.icon as any} size={24} color={colors.tint} />
                 <View style={styles.settingText}>
                   <Text style={styles.settingTitle}>{option.title}</Text>
                   <Text style={styles.settingSubtitle}>{option.subtitle}</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+              <Ionicons name="chevron-forward" size={20} color={colors.textDisabled} />
             </TouchableOpacity>
           ))}
         </View>
@@ -94,71 +97,79 @@ const SettingsScreen: React.FC = () => {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-  },
-  settingsContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingText: {
-    marginLeft: 15,
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 2,
-  },
-  settingSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  logoutText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: '#FF3B30',
-    fontWeight: '500',
-  },
-});
+const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: Spacing.lg,
+      paddingBottom: Spacing.lg,
+      paddingTop: Spacing.xl,
+    },
+    title: {
+      ...Typography.h2,
+      color: colors.text,
+      marginBottom: Spacing.lg,
+    },
+    settingsContainer: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.lg,
+      marginBottom: Spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    settingItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    settingLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    settingText: {
+      marginLeft: Spacing.md,
+      flex: 1,
+    },
+    settingTitle: {
+      ...Typography.body,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 2,
+    },
+    settingSubtitle: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+    },
+    logoutButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.card,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      borderRadius: BorderRadius.lg,
+      marginTop: Spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    logoutText: {
+      marginLeft: Spacing.sm,
+      ...Typography.body,
+      color: '#FF3B30',
+      fontWeight: '600',
+    },
+  });
 
 export default SettingsScreen;

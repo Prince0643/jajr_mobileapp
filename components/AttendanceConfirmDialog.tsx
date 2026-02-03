@@ -7,7 +7,6 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    useColorScheme,
     View,
 } from 'react-native';
 
@@ -30,8 +29,7 @@ const AttendanceConfirmDialog: React.FC<AttendanceConfirmDialogProps> = ({
   isLoading = false,
   mode,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme || 'dark'];
+  const colors = Colors.dark;
 
   if (!employee || !branch) return null;
 
@@ -52,7 +50,7 @@ const AttendanceConfirmDialog: React.FC<AttendanceConfirmDialogProps> = ({
       onRequestClose={onCancel}
     >
       <View style={styles.overlay}>
-        <View style={[styles.dialog, { backgroundColor: colors.card }]}
+        <View style={[styles.dialog, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           <Text style={[styles.message, { color: colors.textSecondary || colors.icon }]}>{message}</Text>
@@ -97,6 +95,7 @@ const styles = StyleSheet.create({
     padding: 30,
     width: '100%',
     maxWidth: 400,
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

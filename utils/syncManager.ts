@@ -20,6 +20,8 @@ export interface ConflictResolution {
 class SyncManager {
   private isOnline: boolean = true;
   private syncInProgress: boolean = false;
+  private initializePromise: Promise<void> | null = null;
+  private netInfoUnsubscribe: (() => void) | null = null;
 
   private isIdempotentSuccessMessage(message: unknown): boolean {
     if (typeof message !== 'string') return false;
@@ -28,24 +30,38 @@ class SyncManager {
   }
 
   async initialize(): Promise<void> {
-    // Initialize database
-    await dbHelper.initDatabase();
-    
-    // Monitor network status
-    NetInfo.addEventListener((state: any) => {
+    if (this.initializePromise) {
+      return this.initializePromise;
+    }
+
+    this.initializePromise = (async () => {
+      // Initialize database
+      await dbHelper.initDatabase();
+
+      // Monitor network status (subscribe only once)
+      if (!this.netInfoUnsubscribe) {
+        this.netInfoUnsubscribe = NetInfo.addEventListener((state: any) => {
+          this.isOnline = state.isConnected ?? false;
+          if (this.isOnline) {
+            this.autoSync();
+          }
+        });
+      }
+
+      // Check initial network status
+      const state = await NetInfo.fetch();
       this.isOnline = state.isConnected ?? false;
+
+      // If already online on startup, attempt to sync right away
       if (this.isOnline) {
         this.autoSync();
       }
-    });
+    })();
 
-    // Check initial network status
-    const state = await NetInfo.fetch();
-    this.isOnline = state.isConnected ?? false;
-
-    // If already online on startup, attempt to sync right away
-    if (this.isOnline) {
-      this.autoSync();
+    try {
+      await this.initializePromise;
+    } finally {
+      // keep promise so subsequent calls don't reinitialize
     }
   }
 

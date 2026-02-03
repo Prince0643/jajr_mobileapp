@@ -9,7 +9,9 @@ export { default as EmptyState } from './EmptyState';
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as ForgotPasswordDialog } from './ForgotPasswordDialog';
 export { default as LoadingState } from './LoadingState';
+export { default as LogoutModal } from './LogoutModal';
 export { default as PerformanceMonitor, useDebounce, useMemoizedCallback, usePerformanceMonitor, useThrottle } from './PerformanceMonitor';
 export { BranchSkeleton, EmployeeSkeleton, default as SkeletonLoader } from './SkeletonLoader';
+export { default as SuccessModal } from './SuccessModal';
 export { default as SyncStatus } from './SyncStatus';
 

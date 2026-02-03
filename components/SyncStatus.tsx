@@ -25,34 +25,38 @@ const SyncStatus: React.FC<SyncStatusProps> = ({ onSyncComplete }) => {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    initializeSyncStatus();
-  }, []);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let isMounted = true;
 
-  const initializeSyncStatus = async () => {
-    try {
-      await syncManager.initialize();
-      
-      // Get initial status
-      const online = await syncManager.isOnlineStatus();
-      setIsOnline(online);
-      
-      const pending = await syncManager.getPendingSyncCount();
-      setPendingCount(pending);
-      
-      // Update status every 30 seconds
-      const interval = setInterval(async () => {
-        const currentOnline = await syncManager.isOnlineStatus();
-        setIsOnline(currentOnline);
-        
-        const currentPending = await syncManager.getPendingSyncCount();
-        setPendingCount(currentPending);
-      }, 30000);
-      
-      return () => clearInterval(interval);
-    } catch (error) {
-      console.error('Error initializing sync status:', error);
-    }
-  };
+    const run = async () => {
+      try {
+        await syncManager.initialize();
+
+        const online = await syncManager.isOnlineStatus();
+        if (isMounted) setIsOnline(online);
+
+        const pending = await syncManager.getPendingSyncCount();
+        if (isMounted) setPendingCount(pending);
+
+        interval = setInterval(async () => {
+          const currentOnline = await syncManager.isOnlineStatus();
+          if (isMounted) setIsOnline(currentOnline);
+
+          const currentPending = await syncManager.getPendingSyncCount();
+          if (isMounted) setPendingCount(currentPending);
+        }, 30000);
+      } catch (error) {
+        console.error('Error initializing sync status:', error);
+      }
+    };
+
+    run();
+
+    return () => {
+      isMounted = false;
+      if (interval) clearInterval(interval);
+    };
+  }, []);
 
   const handleSyncNow = async () => {
     if (isSyncing || !isOnline) return;
