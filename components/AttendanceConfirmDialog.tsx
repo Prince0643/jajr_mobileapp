@@ -17,7 +17,7 @@ interface AttendanceConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
-  mode: 'present' | 'undo';
+  mode: 'time_in' | 'time_out';
 }
 
 const AttendanceConfirmDialog: React.FC<AttendanceConfirmDialogProps> = ({
@@ -33,14 +33,14 @@ const AttendanceConfirmDialog: React.FC<AttendanceConfirmDialogProps> = ({
 
   if (!employee || !branch) return null;
 
-  const isPresentMode = mode === 'present';
+  const isTimeInMode = mode === 'time_in';
   
-  const title = isPresentMode ? 'Confirm Attendance' : 'Undo Attendance';
-  const message = isPresentMode
-    ? `Mark ${employee.first_name} ${employee.last_name} as PRESENT in ${branch.branchName}?`
-    : `Mark ${employee.first_name} ${employee.last_name} as ABSENT in ${branch.branchName}?`;
-  const confirmText = isPresentMode ? 'YES' : 'YES';
-  const confirmColor = isPresentMode ? '#4CAF50' : '#FF9800';
+  const title = isTimeInMode ? 'Confirm Time In' : 'Confirm Time Out';
+  const message = isTimeInMode
+    ? `Time in ${employee.first_name} ${employee.last_name} in ${branch.branchName}?`
+    : `Time out ${employee.first_name} ${employee.last_name} in ${branch.branchName}?`;
+  const confirmText = 'YES';
+  const confirmColor = isTimeInMode ? '#4CAF50' : '#FF9500';
 
   return (
     <Modal

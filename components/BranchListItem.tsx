@@ -9,27 +9,29 @@ import {
     useColorScheme,
     View
 } from 'react-native';
-import EmployeeListItem from './EmployeeListItem';
+import BranchEmployeeSearchList from './BranchEmployeeSearchList';
 
 interface BranchListItemProps {
   branch: Branch;
   onBranchPress: () => void;
-  onEmployeePresent: (employee: Employee, branch: Branch) => void;
-  onEmployeeUndo: (employee: Employee) => void;
+  onEmployeeTimeIn: (employee: Employee, branch: Branch) => void;
+  onEmployeeTimeOut: (employee: Employee, branch: Branch) => void;
+  onEmployeeLongPress?: (employee: Employee, branch: Branch) => void;
 }
 
 const BranchListItem: React.FC<BranchListItemProps> = ({
   branch,
   onBranchPress,
-  onEmployeePresent,
-  onEmployeeUndo,
+  onEmployeeTimeIn,
+  onEmployeeTimeOut,
+  onEmployeeLongPress,
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme || 'dark'];
 
   const employeesLoaded = Array.isArray(branch.employees);
   const employees = Array.isArray(branch.employees) ? branch.employees : [];
-  const presentCount = employeesLoaded ? employees.filter(emp => emp.isPresent).length : 0;
+  const timedInCount = employeesLoaded ? employees.filter(emp => !!emp.time_in && !emp.time_out).length : 0;
   const totalCount = employeesLoaded ? employees.length : 0;
 
   const headerLabel = branch.isLoading
@@ -37,7 +39,7 @@ const BranchListItem: React.FC<BranchListItemProps> = ({
     : !employeesLoaded
       ? 'Tap to view employees'
       : totalCount > 0
-        ? `${presentCount}/${totalCount} Present`
+        ? `${timedInCount}/${totalCount} Timed In`
         : 'No employees';
 
   return (
@@ -64,28 +66,13 @@ const BranchListItem: React.FC<BranchListItemProps> = ({
       </TouchableOpacity>
 
       {branch.isExpanded && (
-        <View style={styles.employeesContainer}>
-          {branch.isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.dark.tint} />
-              <Text style={styles.loadingText}>Loading employees...</Text>
-            </View>
-          ) : branch.employees && branch.employees.length > 0 ? (
-            branch.employees.map((employee) => (
-              <EmployeeListItem
-                key={employee.id}
-                employee={employee}
-                onPresentPress={() => onEmployeePresent(employee, branch)}
-                onUndoPress={() => onEmployeeUndo(employee)}
-                isExpanded={branch.isExpanded}
-              />
-            ))
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No employees found in this branch</Text>
-            </View>
-          )}
-        </View>
+        <BranchEmployeeSearchList
+          employees={branch.employees || []}
+          branch={branch}
+          onEmployeeTimeIn={onEmployeeTimeIn}
+          onEmployeeTimeOut={onEmployeeTimeOut}
+          onEmployeeLongPress={onEmployeeLongPress}
+        />
       )}
     </View>
   );

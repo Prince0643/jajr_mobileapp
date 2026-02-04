@@ -16,8 +16,9 @@ import BranchListItem from './BranchListItem';
 interface BranchListProps {
   branches: Branch[];
   onBranchPress: (branch: Branch, index: number) => void;
-  onEmployeePresent: (employee: Employee, branch: Branch) => void;
-  onEmployeeUndo: (employee: Employee) => void;
+  onEmployeeTimeIn: (employee: Employee, branch: Branch) => void;
+  onEmployeeTimeOut: (employee: Employee, branch: Branch) => void;
+  onEmployeeLongPress?: (employee: Employee, branch: Branch) => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
   style?: ViewStyle;
@@ -26,8 +27,9 @@ interface BranchListProps {
 const BranchList: React.FC<BranchListProps> = ({
   branches,
   onBranchPress,
-  onEmployeePresent,
-  onEmployeeUndo,
+  onEmployeeTimeIn,
+  onEmployeeTimeOut,
+  onEmployeeLongPress,
   onRefresh,
   isRefreshing = false,
   style,
@@ -39,87 +41,85 @@ const BranchList: React.FC<BranchListProps> = ({
     visible: boolean;
     employee: Employee | null;
     branch: Branch | null;
-    mode: 'present' | 'undo';
+    mode: 'time_in' | 'time_out';
   }>({
     visible: false,
     employee: null,
     branch: null,
-    mode: 'present',
+    mode: 'time_in',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleEmployeePresent = (employee: Employee, branch: Branch) => {
+  const handleEmployeeTimeIn = (employee: Employee, branch: Branch) => {
     setConfirmDialog({
       visible: true,
       employee,
       branch,
-      mode: 'present',
+      mode: 'time_in',
     });
   };
 
-  const handleEmployeeUndo = (employee: Employee) => {
-    // Find which branch this employee belongs to
-    const employeeBranch = branches.find(branch => 
-      branch.employees?.some(emp => emp.id === employee.id)
-    );
-    
-    if (employeeBranch) {
-      setConfirmDialog({
-        visible: true,
-        employee,
-        branch: employeeBranch,
-        mode: 'undo',
-      });
-    }
+  const handleEmployeeTimeOut = (employee: Employee, branch: Branch) => {
+    setConfirmDialog({
+      visible: true,
+      employee,
+      branch,
+      mode: 'time_out',
+    });
   };
 
-  const handleConfirmPresent = async () => {
+  const handleConfirmTimeIn = async () => {
     const { employee, branch } = confirmDialog;
     if (!employee || !branch) return;
 
     setIsSubmitting(true);
     try {
-      await onEmployeePresent(employee, branch);
+      await onEmployeeTimeIn(employee, branch);
 
       setConfirmDialog({
         visible: false,
         employee: null,
         branch: null,
-        mode: 'present',
+        mode: 'time_in',
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleConfirmUndo = () => {
-    const { employee } = confirmDialog;
-    if (employee) {
-      onEmployeeUndo(employee);
-    }
+  const handleConfirmTimeOut = async () => {
+    const { employee, branch } = confirmDialog;
+    if (!employee || !branch) return;
 
-    setConfirmDialog({
-      visible: false,
-      employee: null,
-      branch: null,
-      mode: 'undo',
-    });
+    setIsSubmitting(true);
+    try {
+      await onEmployeeTimeOut(employee, branch);
+      setConfirmDialog({
+        visible: false,
+        employee: null,
+        branch: null,
+        mode: 'time_out',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleConfirm = () => {
-    if (confirmDialog.mode === 'present') {
-      handleConfirmPresent();
-    } else {
-      handleConfirmUndo();
+    if (confirmDialog.mode === 'time_in') {
+      handleConfirmTimeIn();
+      return;
     }
+    handleConfirmTimeOut();
   };
 
   const renderBranchItem = ({ item, index }: { item: Branch; index: number }) => (
     <BranchListItem
       branch={item}
       onBranchPress={() => onBranchPress(item, index)}
-      onEmployeePresent={handleEmployeePresent}
-      onEmployeeUndo={handleEmployeeUndo}
+      onEmployeeTimeIn={handleEmployeeTimeIn}
+      onEmployeeTimeOut={handleEmployeeTimeOut}
+      onEmployeeLongPress={onEmployeeLongPress}
     />
   );
 

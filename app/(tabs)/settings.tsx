@@ -35,19 +35,19 @@ const SettingsScreen: React.FC = () => {
       icon: 'person-outline',
       title: 'Profile',
       subtitle: 'Manage your profile information',
-      onPress: () => Alert.alert('Profile', 'Profile management coming soon'),
+      onPress: () => router.push('/profile'),
     },
     {
       icon: 'notifications-outline',
       title: 'Notifications',
       subtitle: 'Configure notification preferences',
-      onPress: () => Alert.alert('Notifications', 'Notification settings coming soon'),
+      onPress: () => router.push('/notifications'),
     },
     {
       icon: 'lock-closed-outline',
       title: 'Privacy & Security',
       subtitle: 'Manage your privacy settings',
-      onPress: () => Alert.alert('Privacy', 'Privacy settings coming soon'),
+      onPress: () => router.push('/privacy'),
     },
     {
       icon: 'help-circle-outline',

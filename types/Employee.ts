@@ -3,9 +3,12 @@ export interface Employee {
   employee_code: string;
   first_name: string;
   last_name: string;
-  branch_name: string;
+  branch_name?: string;
   position?: string;
   today_status?: string;
+  time_in?: string | null;
+  time_out?: string | null;
+  is_time_running?: boolean;
   is_auto_absent?: boolean;
   can_mark_present?: boolean;
   isPresent?: boolean;

@@ -5,6 +5,7 @@ export { default as BranchList } from './BranchList';
 export { default as BranchListItem } from './BranchListItem';
 export { default as CustomDrawer } from './CustomDrawer';
 export { default as EmployeeListItem } from './EmployeeListItem';
+export { default as EmployeeTimeLogsModal } from './EmployeeTimeLogsModal';
 export { default as EmptyState } from './EmptyState';
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as ForgotPasswordDialog } from './ForgotPasswordDialog';

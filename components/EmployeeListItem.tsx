@@ -10,43 +10,61 @@ import {
 
 interface EmployeeListItemProps {
   employee: Employee;
-  onPresentPress: () => void;
-  onUndoPress: () => void;
+  onTimeInPress: () => void;
+  onTimeOutPress: () => void;
+  onLongPress?: () => void;
   isExpanded?: boolean;
 }
 
 const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
   employee,
-  onPresentPress,
-  onUndoPress,
+  onTimeInPress,
+  onTimeOutPress,
+  onLongPress,
   isExpanded = false,
 }) => {
   const colors = Colors.dark;
 
+  const isTimeRunning =
+    (employee.is_time_running === true || (!!employee.time_in && !employee.time_out)) && !employee.time_out;
+
   const handlePress = () => {
-    if (employee.isPresent) {
-      onUndoPress();
-    } else if (!employee.isDisabled) {
-      onPresentPress();
+    if (employee.isDisabled) return;
+    if (!isTimeRunning) {
+      onTimeInPress();
+      return;
+    }
+    if (isTimeRunning) {
+      onTimeOutPress();
+      return;
     }
   };
 
   const getStatusColor = () => {
-    if (employee.isPresent) return '#4CAF50';
+    if (employee.time_in && employee.time_out) return '#4CAF50';
+    if (isTimeRunning) return '#FF9500';
     if (employee.isDisabled) return colors.textDisabled || '#9E9E9E';
     return colors.tint;
   };
 
   const getStatusTextColor = () => {
-    if (employee.isPresent) return '#fff';
+    if (employee.time_in) return '#fff';
     if (employee.isDisabled) return colors.buttonPrimaryText || '#000';
     return colors.buttonPrimaryText || '#000';
   };
 
+  const formatTime = (value?: string | null) => {
+    if (!value) return '';
+    const s = String(value);
+    const parts = s.split(' ');
+    return parts.length > 1 ? parts[1] : s;
+  };
+
   const getStatusText = () => {
-    if (employee.isPresent) return 'PRESENT';
+    if (employee.time_in && employee.time_out) return `OUT ${formatTime(employee.time_out)}`;
+    if (isTimeRunning) return `IN ${formatTime(employee.time_in)}`;
     if (employee.isDisabled) return 'MARKED ELSEWHERE';
-    return 'MARK PRESENT';
+    return 'TIME IN';
   };
 
   return (
@@ -57,6 +75,8 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
         { opacity: employee.isDisabled ? 0.6 : 1 }
       ]}
       onPress={handlePress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
       disabled={!isExpanded}
     >
       <View style={styles.employeeInfo}>

@@ -23,15 +23,12 @@ interface LoginFormData {
   Key: string;
   identifier: string;
   password: string;
-  branch_name: string;
 }
 
 const LoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [branches, setBranches] = useState<string[]>([]);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme || 'dark'];
@@ -45,7 +42,6 @@ const LoginScreen: React.FC = () => {
 
   useEffect(() => {
     checkAutoLogin();
-    loadBranches();
   }, []);
 
   const checkAutoLogin = async () => {
@@ -59,15 +55,7 @@ const LoginScreen: React.FC = () => {
     }
   };
 
-  const loadBranches = async () => {
-    // Use actual branches from database
-    const actualBranches = [
-      'Sto. Rosario',
-      'Testing',
-    ];
-    setBranches(actualBranches);
-  };
-
+  
   const onLogin = async (data: LoginFormData) => {
     setIsLoading(true);
     
@@ -76,8 +64,10 @@ const LoginScreen: React.FC = () => {
     
     try {
       const response = await ApiService.login({
-        ...data,
         Key: data.Key || data.identifier,
+        identifier: data.identifier,
+        password: data.password,
+        branch_name: 'Sto. Tomas',
       });
       
       if (response.success && response.user_data) {
@@ -153,47 +143,6 @@ const LoginScreen: React.FC = () => {
           />
           {errors.password && (
             <Text style={styles.errorText}>{errors.password.message}</Text>
-          )}
-
-          <Controller
-            control={control}
-            name="branch_name"
-            rules={{ required: 'Branch selection is required' }}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <View style={styles.pickerContainer}>
-                <TouchableOpacity
-                  style={[styles.input, styles.dropdownButton, errors.branch_name && styles.inputError]}
-                  onPress={() => setShowBranchDropdown(!showBranchDropdown)}
-                >
-                  <Text style={value ? styles.dropdownText : styles.dropdownPlaceholder}>
-                    {value || 'Select Branch'}
-                  </Text>
-                  <Text style={styles.dropdownIcon}>
-                    {showBranchDropdown ? '▲' : '▼'}
-                  </Text>
-                </TouchableOpacity>
-                
-                {showBranchDropdown && (
-                  <View style={styles.dropdownList}>
-                    {branches.map((branch) => (
-                      <TouchableOpacity
-                        key={branch}
-                        style={styles.dropdownItem}
-                        onPress={() => {
-                          setValue('branch_name', branch);
-                          setShowBranchDropdown(false);
-                        }}
-                      >
-                        <Text style={styles.dropdownItemText}>{branch}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-          />
-          {errors.branch_name && (
-            <Text style={styles.errorText}>{errors.branch_name.message}</Text>
           )}
 
           <View style={styles.checkboxContainer}>
