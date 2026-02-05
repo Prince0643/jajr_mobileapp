@@ -22,10 +22,17 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="grid" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="home"
         options={{
           title: 'Attendance',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="home" color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="time" color={color} />,
         }}
       />
       <Tabs.Screen

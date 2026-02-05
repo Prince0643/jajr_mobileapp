@@ -1,9 +1,9 @@
 import {
-    AttendanceRequest,
-    AttendanceResponse,
-    Employee,
-    LoginRequest,
-    LoginResponse,
+  AttendanceRequest,
+  AttendanceResponse,
+  Employee,
+  LoginRequest,
+  LoginResponse,
 } from '@/types';
 import { apiClient } from './apiClient';
 
@@ -122,9 +122,8 @@ export class ApiService {
     limit?: number;
   }): Promise<{ success: boolean; logs?: Array<{ id?: number; time_in: string | null; time_out: string | null }>; message?: string }> {
     const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
-    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}select_employee.php`;
+    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}get_shift_logs_api.php`;
     return apiClient.postForm(url, {
-      action: 'get_shift_logs',
       employee_id: payload.employee_id,
       date: payload.date,
       limit: payload.limit ?? 50,

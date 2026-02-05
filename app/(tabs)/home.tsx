@@ -278,7 +278,10 @@ const HomeScreen: React.FC = () => {
     try {
       const today = new Date().toISOString().slice(0, 10);
       const res = await ApiService.getShiftLogsToday({ employee_id: employee.id, date: today, limit: 50 });
+      console.log('🔍 Time logs API response:', JSON.stringify(res, null, 2));
+      
       const logs = Array.isArray((res as any)?.logs) ? (res as any).logs : [];
+      console.log('🔍 Extracted logs:', logs);
 
       if ((res as any)?.success && logs.length > 0) {
         setTimeLogs(logs);
@@ -286,11 +289,13 @@ const HomeScreen: React.FC = () => {
       }
 
       // Fallback: show current session fields from employee object
+      console.log('🔍 Using fallback - API returned no logs');
       const fallback = employee.time_in
         ? [{ id: 0, time_in: employee.time_in ?? null, time_out: employee.time_out ?? null }]
         : [];
       setTimeLogs(fallback);
-    } catch {
+    } catch (error) {
+      console.log('🔍 Error fetching logs, using fallback:', error);
       const fallback = employee.time_in
         ? [{ id: 0, time_in: employee.time_in ?? null, time_out: employee.time_out ?? null }]
         : [];

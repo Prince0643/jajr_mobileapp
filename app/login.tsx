@@ -48,7 +48,7 @@ const LoginScreen: React.FC = () => {
     try {
       const shouldAutoLogin = await SessionManager.shouldAutoLogin();
       if (shouldAutoLogin) {
-        router.replace('/(tabs)/home');
+        router.replace('/(tabs)/dashboard');
       }
     } catch (error) {
       console.error('Auto-login check failed:', error);
@@ -72,7 +72,7 @@ const LoginScreen: React.FC = () => {
       
       if (response.success && response.user_data) {
         await SessionManager.saveUser(response.user_data, rememberMe);
-        router.replace('/(tabs)/home');
+        router.replace('/(tabs)/dashboard');
       } else {
         Alert.alert('Login Failed', response.message || 'Invalid credentials');
       }

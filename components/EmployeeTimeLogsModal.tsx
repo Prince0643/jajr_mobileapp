@@ -87,9 +87,9 @@ const EmployeeTimeLogsModal: React.FC<EmployeeTimeLogsModalProps> = ({
     return () => clearInterval(id);
   }, [visible]);
 
-  const rows = useMemo(() => {
+  const { rows, overallTotal } = useMemo(() => {
     const now = new Date();
-    let runningTotalSec = 0;
+    let overallTotalSec = 0;
 
     const src = Array.isArray(logs) ? logs : [];
     const ordered = [...src].sort((a, b) => {
@@ -103,7 +103,7 @@ const EmployeeTimeLogsModal: React.FC<EmployeeTimeLogsModalProps> = ({
       return 0;
     });
 
-    return ordered.map((l, idx) => {
+    const processedRows = ordered.map((l, idx) => {
       const start = parseToDate(l.time_in);
       const end = parseToDate(l.time_out) ?? (start ? now : null);
 
@@ -111,16 +111,21 @@ const EmployeeTimeLogsModal: React.FC<EmployeeTimeLogsModalProps> = ({
       if (start && end) {
         sessionSec = Math.max(0, (end.getTime() - start.getTime()) / 1000);
       }
-      runningTotalSec += sessionSec;
+      overallTotalSec += sessionSec;
 
       return {
         key: String(l.id ?? idx),
         timeInLabel: formatTime12h(l.time_in),
         timeOutLabel: l.time_out ? formatTime12h(l.time_out) : '--',
-        totalLabel: formatDuration(runningTotalSec),
+        totalLabel: formatDuration(sessionSec),
         isOpen: !!l.time_in && !l.time_out,
       };
     });
+
+    return {
+      rows: processedRows,
+      overallTotal: formatDuration(overallTotalSec),
+    };
   }, [logs, tick]);
 
   return (
@@ -190,6 +195,13 @@ const EmployeeTimeLogsModal: React.FC<EmployeeTimeLogsModalProps> = ({
                   </View>
                 ))}
               </ScrollView>
+              
+              <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
+                <Text style={[styles.totalLabel, { color: colors.text }]}>Overall Total:</Text>
+                <Text style={[styles.totalValue, { color: colors.tint, fontVariant: ['tabular-nums'] }]}>
+                  {overallTotal}
+                </Text>
+              </View>
             </View>
           )}
         </View>
@@ -202,16 +214,20 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 18,
-    maxHeight: '78%',
+    flex: 1,
+    width: '94%',
+    maxWidth: 520,
+    margin: 20,
+    maxHeight: '85%',
   },
   header: {
     flexDirection: 'row',
@@ -260,6 +276,7 @@ const styles = StyleSheet.create({
   },
   tableWrap: {
     flex: 1,
+    minHeight: 300,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -286,6 +303,24 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderTopWidth: 2,
+    marginTop: 4,
+  },
+  totalLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  totalValue: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'right',
   },
 });
 
