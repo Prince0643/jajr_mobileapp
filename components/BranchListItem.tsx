@@ -1,12 +1,12 @@
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import { Branch, Employee } from '@/types';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
     Text,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 import BranchEmployeeSearchList from './BranchEmployeeSearchList';
@@ -16,7 +16,9 @@ interface BranchListItemProps {
   onBranchPress: () => void;
   onEmployeeTimeIn: (employee: Employee, branch: Branch) => void;
   onEmployeeTimeOut: (employee: Employee, branch: Branch) => void;
+  onEmployeeTransfer?: (employee: Employee, branch: Branch) => void;
   onEmployeeLongPress?: (employee: Employee, branch: Branch) => void;
+  onEmployeeSetOtHours?: (employee: Employee, otHours: string) => Promise<void> | void;
 }
 
 const BranchListItem: React.FC<BranchListItemProps> = ({
@@ -24,10 +26,14 @@ const BranchListItem: React.FC<BranchListItemProps> = ({
   onBranchPress,
   onEmployeeTimeIn,
   onEmployeeTimeOut,
+  onEmployeeTransfer,
   onEmployeeLongPress,
+  onEmployeeSetOtHours,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme || 'dark'];
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
+  const borderLight = ('borderLight' in colors ? (colors as any).borderLight : undefined) ?? colors.border;
+  const styles = useMemo(() => createStyles(colors, borderLight), [borderLight, colors]);
 
   const employeesLoaded = Array.isArray(branch.employees);
   const employees = Array.isArray(branch.employees) ? branch.employees : [];
@@ -54,7 +60,7 @@ const BranchListItem: React.FC<BranchListItemProps> = ({
         
         <View style={styles.headerRight}>
           {branch.isLoading ? (
-            <ActivityIndicator size="small" color={Colors.dark.tint} />
+            <ActivityIndicator size="small" color={colors.tint} />
           ) : (
             <View style={styles.expandIcon}>
               <Text style={styles.expandIconText}>
@@ -71,79 +77,84 @@ const BranchListItem: React.FC<BranchListItemProps> = ({
           branch={branch}
           onEmployeeTimeIn={onEmployeeTimeIn}
           onEmployeeTimeOut={onEmployeeTimeOut}
+          onEmployeeTransfer={onEmployeeTransfer}
           onEmployeeLongPress={onEmployeeLongPress}
+          onEmployeeSetOtHours={onEmployeeSetOtHours}
         />
       )}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.dark.card,
-    marginHorizontal: Spacing.md,
-    marginVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    ...Shadows.md,
-  },
-  branchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    backgroundColor: Colors.dark.surface,
-    borderRadius: BorderRadius.md,
-  },
-  branchInfo: {
-    flex: 1,
-  },
-  branchName: {
-    ...Typography.h3,
-    color: Colors.dark.text,
-    marginBottom: Spacing.xs,
-  },
-  employeeCount: {
-    ...Typography.caption,
-    color: Colors.dark.textSecondary,
-  },
-  headerRight: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  expandIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: Colors.dark.tint,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  expandIconText: {
-    color: Colors.dark.buttonPrimaryText,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  employeesContainer: {
-    paddingHorizontal: Spacing.xs,
-    paddingBottom: Spacing.sm,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-  loadingText: {
-    marginTop: Spacing.sm,
-    ...Typography.body,
-    color: Colors.dark.textSecondary,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-  },
-  emptyText: {
-    ...Typography.body,
-    color: Colors.dark.textDisabled,
-    fontStyle: 'italic',
-  },
-});
+const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight: string) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: colors.card,
+      marginHorizontal: Spacing.md,
+      marginVertical: Spacing.sm,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...Shadows.md,
+    },
+    branchHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: Spacing.lg,
+      backgroundColor: colors.surface,
+      borderRadius: BorderRadius.md,
+    },
+    branchInfo: {
+      flex: 1,
+    },
+    branchName: {
+      ...Typography.h3,
+      color: colors.text,
+      marginBottom: Spacing.xs,
+    },
+    employeeCount: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+    },
+    headerRight: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    expandIcon: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.tint,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    expandIconText: {
+      color: colors.buttonPrimaryText,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    employeesContainer: {
+      paddingHorizontal: Spacing.xs,
+      paddingBottom: Spacing.sm,
+    },
+    loadingContainer: {
+      alignItems: 'center',
+      padding: Spacing.xl,
+    },
+    loadingText: {
+      marginTop: Spacing.sm,
+      ...Typography.body,
+      color: colors.textSecondary,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      padding: Spacing.xl,
+    },
+    emptyText: {
+      ...Typography.body,
+      color: colors.textDisabled,
+      fontStyle: 'italic',
+    },
+  });
 
 export default BranchListItem;

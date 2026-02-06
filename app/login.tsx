@@ -1,24 +1,25 @@
 import { ForgotPasswordDialog } from '@/components';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import { ApiService } from '@/services/api';
 import { ErrorHandler, SessionManager } from '@/utils';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    useColorScheme
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-
 interface LoginFormData {
   Key: string;
   identifier: string;
@@ -29,9 +30,11 @@ const LoginScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme || 'dark'];
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const {
     control,
@@ -90,11 +93,16 @@ const LoginScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: Colors.dark.background }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.formContainer}>
+          <Image
+            source={require('../jajr-logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>Attendance Login</Text>
           
           <Controller
@@ -108,7 +116,7 @@ const LoginScreen: React.FC = () => {
               <TextInput
                 style={[styles.input, errors.identifier && styles.inputError]}
                 placeholder="Employee ID"
-                placeholderTextColor={Colors.dark.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -129,16 +137,30 @@ const LoginScreen: React.FC = () => {
               minLength: { value: 4, message: 'Password must be at least 4 characters' }
             }}
             render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[styles.input, errors.password && styles.inputError]}
-                placeholder="Password"
-                placeholderTextColor={Colors.dark.textSecondary}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                secureTextEntry
-                autoCapitalize="none"
-              />
+              <View style={[styles.passwordRow, errors.password && styles.inputError]}>
+                <TextInput
+                  key={showPassword ? 'pw_visible' : 'pw_hidden'}
+                  style={styles.passwordInput}
+                  placeholder="Password"
+                  placeholderTextColor={colors.textSecondary}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword((v) => !v)}
+                  disabled={isLoading}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
             )}
           />
           {errors.password && (
@@ -163,7 +185,7 @@ const LoginScreen: React.FC = () => {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color={Colors.dark.buttonPrimaryText} />
+              <ActivityIndicator color={colors.buttonPrimaryText} />
             ) : (
               <Text style={styles.loginButtonText}>Login</Text>
             )}
@@ -183,143 +205,168 @@ const LoginScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  formContainer: {
-    backgroundColor: Colors.dark.card,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    ...Shadows.lg,
-  },
-  title: {
-    ...Typography.h2,
-    textAlign: 'center',
-    marginBottom: Spacing.xl,
-    color: Colors.dark.text,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.dark.inputBorder,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    fontSize: Typography.body.fontSize,
-    backgroundColor: Colors.dark.inputBackground,
-    color: Colors.dark.text,
-  },
-  inputError: {
-    borderColor: '#F44336',
-  },
-  errorText: {
-    color: '#F44336',
-    fontSize: Typography.caption.fontSize,
-    marginBottom: Spacing.sm,
-  },
-  pickerContainer: {
-    marginBottom: Spacing.sm,
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dropdownText: {
-    ...Typography.body,
-    color: Colors.dark.text,
-    flex: 1,
-  },
-  dropdownPlaceholder: {
-    ...Typography.body,
-    color: Colors.dark.textSecondary,
-    flex: 1,
-  },
-  dropdownIcon: {
-    ...Typography.body,
-    color: Colors.dark.textSecondary,
-    fontSize: 16,
-  },
-  dropdownList: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    ...Shadows.md,
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  dropdownItemText: {
-    ...Typography.body,
-    color: Colors.dark.text,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  checkbox: {
-    marginRight: Spacing.sm,
-  },
-  checkboxInner: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    borderRadius: BorderRadius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.dark.inputBackground,
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.dark.tint,
-    borderColor: Colors.dark.tint,
-  },
-  checkmark: {
-    color: '#000000',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
-    fontSize: Typography.body.fontSize,
-    color: Colors.dark.text,
-  },
-  loginButton: {
-    backgroundColor: Colors.dark.tint,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    ...Shadows.md,
-  },
-  loginButtonDisabled: {
-    backgroundColor: Colors.dark.textDisabled,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  loginButtonText: {
-    color: Colors.dark.buttonPrimaryText,
-    fontSize: Typography.body.fontSize,
-    fontWeight: 'bold',
-  },
-  forgotPasswordButton: {
-    alignItems: 'center',
-  },
-  forgotPasswordText: {
-    color: Colors.dark.tint,
-    fontSize: Typography.caption.fontSize,
-  },
-});
+const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContainer: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: Spacing.lg,
+    },
+    formContainer: {
+      backgroundColor: colors.card,
+      padding: Spacing.xl,
+      borderRadius: BorderRadius.lg,
+      ...Shadows.lg,
+    },
+    logo: {
+      width: '100%',
+      height: 140,
+      marginBottom: Spacing.md,
+    },
+    title: {
+      ...Typography.h2,
+      textAlign: 'center',
+      marginBottom: Spacing.xl,
+      color: colors.text,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.md,
+      marginBottom: Spacing.sm,
+      fontSize: Typography.body.fontSize,
+      backgroundColor: colors.inputBackground,
+      color: colors.text,
+    },
+    passwordRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: BorderRadius.md,
+      marginBottom: Spacing.sm,
+      backgroundColor: colors.inputBackground,
+    },
+    passwordInput: {
+      flex: 1,
+      padding: Spacing.md,
+      fontSize: Typography.body.fontSize,
+      color: colors.text,
+    },
+    eyeButton: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.md,
+    },
+    inputError: {
+      borderColor: '#F44336',
+    },
+    errorText: {
+      color: '#F44336',
+      fontSize: Typography.caption.fontSize,
+      marginBottom: Spacing.sm,
+    },
+    pickerContainer: {
+      marginBottom: Spacing.sm,
+    },
+    dropdownButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    dropdownText: {
+      ...Typography.body,
+      color: colors.text,
+      flex: 1,
+    },
+    dropdownPlaceholder: {
+      ...Typography.body,
+      color: colors.textSecondary,
+      flex: 1,
+    },
+    dropdownIcon: {
+      ...Typography.body,
+      color: colors.textSecondary,
+      fontSize: 16,
+    },
+    dropdownList: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.md,
+      marginTop: Spacing.xs,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...Shadows.md,
+      zIndex: 1000,
+    },
+    dropdownItem: {
+      padding: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    dropdownItemText: {
+      ...Typography.body,
+      color: colors.text,
+    },
+    checkboxContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.lg,
+    },
+    checkbox: {
+      marginRight: Spacing.sm,
+    },
+    checkboxInner: {
+      width: 20,
+      height: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: BorderRadius.sm,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.inputBackground,
+    },
+    checkboxChecked: {
+      backgroundColor: colors.tint,
+      borderColor: colors.tint,
+    },
+    checkmark: {
+      color: '#000000',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    checkboxLabel: {
+      fontSize: Typography.body.fontSize,
+      color: colors.text,
+    },
+    loginButton: {
+      backgroundColor: colors.tint,
+      padding: Spacing.md,
+      borderRadius: BorderRadius.md,
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+      ...Shadows.md,
+    },
+    loginButtonDisabled: {
+      backgroundColor: colors.textDisabled,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    loginButtonText: {
+      color: colors.buttonPrimaryText,
+      fontSize: Typography.body.fontSize,
+      fontWeight: 'bold',
+    },
+    forgotPasswordButton: {
+      alignItems: 'center',
+    },
+    forgotPasswordText: {
+      color: colors.tint,
+      fontSize: Typography.caption.fontSize,
+    },
+  });
 
 export default LoginScreen;

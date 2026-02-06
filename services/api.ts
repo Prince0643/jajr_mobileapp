@@ -1,9 +1,9 @@
 import {
-  AttendanceRequest,
-  AttendanceResponse,
-  Employee,
-  LoginRequest,
-  LoginResponse,
+    AttendanceRequest,
+    AttendanceResponse,
+    Employee,
+    LoginRequest,
+    LoginResponse,
 } from '@/types';
 import { apiClient } from './apiClient';
 
@@ -89,6 +89,31 @@ export class ApiService {
     return apiClient.postForm<AttendanceResponse>(url, request);
   }
 
+  static async transferBranch(request: { employee_id: number; from_branch: string; to_branch: string }): Promise<any> {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
+    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}transfer_branch_api.php`;
+    return apiClient.postForm<any>(url, request);
+  }
+
+  static async getBranches(): Promise<Array<{ id: number; branch_name: string }>> {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
+    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}get_branches_api.php`;
+    const raw = await apiClient.get<any>(url);
+    if (raw && raw.success && Array.isArray(raw.branches)) {
+      return raw.branches as Array<{ id: number; branch_name: string }>;
+    }
+    if (Array.isArray(raw)) {
+      return raw as Array<{ id: number; branch_name: string }>;
+    }
+    return [];
+  }
+
+  static async setEmployeeBranch(payload: { employee_id: number; branch_id: number }): Promise<any> {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
+    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}set_employee_branch_api.php`;
+    return apiClient.postForm<any>(url, payload as any);
+  }
+
   static async getAvailableEmployees(branchName: string): Promise<Employee[]> {
     const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
     const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}employees_today_status_api.php`;
@@ -128,6 +153,16 @@ export class ApiService {
       date: payload.date,
       limit: payload.limit ?? 50,
     } as any);
+  }
+
+  static async setAttendanceOtHours(payload: {
+    employee_id: number;
+    ot_hours: string;
+    date?: string;
+  }): Promise<{ success: boolean; message?: string; total_ot_hrs?: string }> {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
+    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}set_attendance_ot_hrs_api.php`;
+    return apiClient.postForm(url, payload as any);
   }
 
   // Password Reset (if needed)

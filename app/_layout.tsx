@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemeModeProvider, useThemeMode } from '@/hooks/use-theme-mode';
 
 // Custom dark theme with yellow accent
 const CustomDarkTheme = {
@@ -20,23 +20,43 @@ const CustomDarkTheme = {
   },
 };
 
+const CustomLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: Colors.light.tint,
+    background: Colors.light.background,
+    card: Colors.light.card,
+    text: Colors.light.text,
+    border: Colors.light.border,
+    notification: Colors.light.tint,
+  },
+};
+
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  // Force dark mode
-  const isDarkMode = true;
+function RootLayoutInner() {
+  const { resolvedTheme } = useThemeMode();
+  const isDarkMode = resolvedTheme === 'dark';
 
   return (
-    <ThemeProvider value={isDarkMode ? CustomDarkTheme : DefaultTheme}>
+    <ThemeProvider value={isDarkMode ? CustomDarkTheme : CustomLightTheme}>
       <Stack>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
-      <StatusBar style="light" />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeModeProvider>
+      <RootLayoutInner />
+    </ThemeModeProvider>
   );
 }

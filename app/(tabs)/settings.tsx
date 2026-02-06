@@ -1,5 +1,6 @@
 import { LogoutModal } from '@/components';
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import { SessionManager } from '@/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,6 +9,7 @@ import {
     Alert,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
     TouchableOpacity,
     View,
@@ -17,7 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const SettingsScreen: React.FC = () => {
   const router = useRouter();
   const [logoutVisible, setLogoutVisible] = useState(false);
-  const colors = Colors.dark;
+  const { resolvedTheme, setMode } = useThemeMode();
+  const colors = Colors[resolvedTheme];
   const styles = createStyles(colors);
 
   const handleLogout = () => {
@@ -72,6 +75,24 @@ const SettingsScreen: React.FC = () => {
       />
       <ScrollView style={styles.content}>
         <Text style={styles.title}>Settings</Text>
+
+        <View style={styles.settingsContainer}>
+          <View style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="moon-outline" size={24} color={colors.tint} />
+              <View style={styles.settingText}>
+                <Text style={styles.settingTitle}>Dark Mode</Text>
+                <Text style={styles.settingSubtitle}>Switch between light and dark appearance</Text>
+              </View>
+            </View>
+            <Switch
+              value={resolvedTheme === 'dark'}
+              onValueChange={(value) => setMode(value ? 'dark' : 'light')}
+              trackColor={{ false: colors.border, true: colors.tint }}
+              thumbColor={resolvedTheme === 'dark' ? colors.buttonPrimaryText : colors.card}
+            />
+          </View>
+        </View>
         
         <View style={styles.settingsContainer}>
           {settingsOptions.map((option, index) => (

@@ -1,4 +1,5 @@
 import { Colors } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import { Branch, Employee } from '@/types';
 import React from 'react';
 import {
@@ -18,6 +19,9 @@ interface AttendanceConfirmDialogProps {
   onCancel: () => void;
   isLoading?: boolean;
   mode: 'time_in' | 'time_out';
+  branchOptions?: Branch[];
+  selectedBranch?: Branch | null;
+  onSelectBranch?: (branch: Branch) => void;
 }
 
 const AttendanceConfirmDialog: React.FC<AttendanceConfirmDialogProps> = ({
@@ -28,16 +32,26 @@ const AttendanceConfirmDialog: React.FC<AttendanceConfirmDialogProps> = ({
   onCancel,
   isLoading = false,
   mode,
+  branchOptions,
+  selectedBranch,
+  onSelectBranch,
 }) => {
-  const colors = Colors.dark;
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
 
   if (!employee || !branch) return null;
 
   const isTimeInMode = mode === 'time_in';
+  const isNoBranchTimeIn = isTimeInMode && branch.branchName === 'Pool';
+  const needsBranchSelection = isNoBranchTimeIn;
+  const hasSelectedBranch = !!selectedBranch && selectedBranch.branchName !== 'Pool';
   
   const title = isTimeInMode ? 'Confirm Time In' : 'Confirm Time Out';
+  const displayBranchName = isNoBranchTimeIn
+    ? (hasSelectedBranch ? selectedBranch!.branchName : 'Select a branch')
+    : branch.branchName;
   const message = isTimeInMode
-    ? `Time in ${employee.first_name} ${employee.last_name} in ${branch.branchName}?`
+    ? `Time in ${employee.first_name} ${employee.last_name} in ${displayBranchName}?`
     : `Time out ${employee.first_name} ${employee.last_name} in ${branch.branchName}?`;
   const confirmText = 'YES';
   const confirmColor = isTimeInMode ? '#4CAF50' : '#FF9500';
@@ -54,6 +68,28 @@ const AttendanceConfirmDialog: React.FC<AttendanceConfirmDialogProps> = ({
         >
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           <Text style={[styles.message, { color: colors.textSecondary || colors.icon }]}>{message}</Text>
+
+          {needsBranchSelection && Array.isArray(branchOptions) && branchOptions.length > 0 && typeof onSelectBranch === 'function' && (
+            <View style={styles.branchPickerContainer}>
+              <Text style={[styles.branchPickerLabel, { color: colors.text }]}>Select project (required)</Text>
+              {branchOptions.map((b) => {
+                const isSelected = !!selectedBranch && selectedBranch.branchName === b.branchName;
+                return (
+                  <TouchableOpacity
+                    key={b.branchName}
+                    style={[
+                      styles.branchOption,
+                      { borderColor: colors.border, backgroundColor: isSelected ? (colors.surface || colors.background) : 'transparent' },
+                    ]}
+                    onPress={() => onSelectBranch(b)}
+                    disabled={isLoading}
+                  >
+                    <Text style={[styles.branchOptionText, { color: colors.text }]}>{b.branchName}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
           
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -65,9 +101,13 @@ const AttendanceConfirmDialog: React.FC<AttendanceConfirmDialogProps> = ({
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={[styles.button, styles.confirmButton, { backgroundColor: confirmColor }]}
+              style={[
+                styles.button,
+                styles.confirmButton,
+                { backgroundColor: confirmColor, opacity: needsBranchSelection && !hasSelectedBranch ? 0.5 : 1 },
+              ]}
               onPress={onConfirm}
-              disabled={isLoading}
+              disabled={isLoading || (needsBranchSelection && !hasSelectedBranch)}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
@@ -113,6 +153,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 25,
     lineHeight: 22,
+  },
+  branchPickerContainer: {
+    marginBottom: 18,
+  },
+  branchPickerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  branchOption: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  branchOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   buttonContainer: {
     flexDirection: 'row',

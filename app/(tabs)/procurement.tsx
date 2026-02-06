@@ -1,4 +1,5 @@
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import React, { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,15 +32,6 @@ const STATUS_LABEL: Record<RequestStatus, string> = {
   ordered: 'Ordered',
   received: 'Received',
   cancelled: 'Cancelled',
-};
-
-const STATUS_TONE: Record<RequestStatus, { bg: string; text: string; border: string }> = {
-  draft: { bg: Colors.dark.surface, text: Colors.dark.text, border: Colors.dark.borderLight },
-  pending: { bg: 'rgba(255, 215, 0, 0.15)', text: Colors.dark.tint, border: 'rgba(255, 215, 0, 0.35)' },
-  approved: { bg: 'rgba(76, 175, 80, 0.18)', text: '#7CFF84', border: 'rgba(76, 175, 80, 0.35)' },
-  ordered: { bg: 'rgba(33, 150, 243, 0.18)', text: '#8EC7FF', border: 'rgba(33, 150, 243, 0.35)' },
-  received: { bg: 'rgba(156, 39, 176, 0.18)', text: '#E2A6FF', border: 'rgba(156, 39, 176, 0.35)' },
-  cancelled: { bg: 'rgba(244, 67, 54, 0.18)', text: '#FF9E9E', border: 'rgba(244, 67, 54, 0.35)' },
 };
 
 const MOCK_REQUESTS: ProcurementRequest[] = [
@@ -90,6 +82,21 @@ const money = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits
 const computeTotal = (r: ProcurementRequest) => r.lines.reduce((sum, l) => sum + l.qty * l.unitCost, 0);
 
 const ProcurementScreen: React.FC = () => {
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
+  const borderLight = ('borderLight' in colors ? (colors as any).borderLight : undefined) ?? colors.border;
+  const styles = useMemo(() => createStyles(colors, borderLight), [borderLight, colors]);
+  const statusTone = useMemo<Record<RequestStatus, { bg: string; text: string; border: string }>>(
+    () => ({
+      draft: { bg: colors.surface, text: colors.text, border: borderLight },
+      pending: { bg: 'rgba(255, 215, 0, 0.15)', text: colors.tint, border: 'rgba(255, 215, 0, 0.35)' },
+      approved: { bg: 'rgba(76, 175, 80, 0.18)', text: '#7CFF84', border: 'rgba(76, 175, 80, 0.35)' },
+      ordered: { bg: 'rgba(33, 150, 243, 0.18)', text: '#8EC7FF', border: 'rgba(33, 150, 243, 0.35)' },
+      received: { bg: 'rgba(156, 39, 176, 0.18)', text: '#E2A6FF', border: 'rgba(156, 39, 176, 0.35)' },
+      cancelled: { bg: 'rgba(244, 67, 54, 0.18)', text: '#FF9E9E', border: 'rgba(244, 67, 54, 0.35)' },
+    }),
+    [borderLight, colors]
+  );
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<RequestStatus | 'all'>('all');
   const [selected, setSelected] = useState<ProcurementRequest | null>(null);
@@ -140,7 +147,7 @@ const ProcurementScreen: React.FC = () => {
             value={query}
             onChangeText={setQuery}
             placeholder="PR no., branch, requester, supplier"
-            placeholderTextColor={Colors.dark.textDisabled}
+            placeholderTextColor={colors.textDisabled}
             style={styles.searchInput}
           />
 
@@ -189,7 +196,7 @@ const ProcurementScreen: React.FC = () => {
             </View>
           ) : (
             filtered.map((r) => {
-              const tone = STATUS_TONE[r.status];
+              const tone = statusTone[r.status];
               return (
                 <Pressable key={r.id} style={styles.row} onPress={() => setSelected(r)}>
                   <View style={styles.rowTop}>
@@ -287,10 +294,11 @@ const ProcurementScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight: string) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
+    backgroundColor: colors.background,
   },
   content: {
     padding: Spacing.lg,
@@ -313,34 +321,34 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.h2,
-    color: Colors.dark.text,
+    color: colors.text,
   },
   subtitle: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   card: {
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     ...Shadows.sm,
   },
   sectionLabel: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginBottom: Spacing.sm,
   },
   searchInput: {
-    backgroundColor: Colors.dark.inputBackground,
+    backgroundColor: colors.inputBackground,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.dark.inputBorder,
+    borderColor: colors.inputBorder,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    color: Colors.dark.text,
+    color: colors.text,
   },
   filtersRow: {
     flexDirection: 'row',
@@ -355,22 +363,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipActive: {
-    backgroundColor: Colors.dark.tint,
-    borderColor: Colors.dark.tint,
+    backgroundColor: colors.tint,
+    borderColor: colors.tint,
   },
   chipInactive: {
-    backgroundColor: Colors.dark.surface,
-    borderColor: Colors.dark.borderLight,
+    backgroundColor: colors.surface,
+    borderColor: borderLight,
   },
   chipText: {
     ...Typography.caption,
   },
   chipTextActive: {
-    color: Colors.dark.buttonPrimaryText,
+    color: colors.buttonPrimaryText,
     fontWeight: '600',
   },
   chipTextInactive: {
-    color: Colors.dark.text,
+    color: colors.text,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -379,28 +387,28 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     padding: Spacing.md,
     ...Shadows.sm,
   },
   summaryLabel: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
   },
   summaryValue: {
     ...Typography.h3,
-    color: Colors.dark.text,
+    color: colors.text,
     marginTop: Spacing.xs,
   },
   listCard: {
     marginTop: Spacing.lg,
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     overflow: 'hidden',
     ...Shadows.sm,
   },
@@ -414,17 +422,17 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.h3,
-    color: Colors.dark.text,
+    color: colors.text,
   },
   sectionMeta: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
   },
   row: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
+    borderTopColor: colors.border,
   },
   rowTop: {
     flexDirection: 'row',
@@ -440,22 +448,22 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
   },
   rowSubtitle: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   rowAmount: {
     ...Typography.caption,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
   },
   rowNote: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.sm,
   },
   statusPill: {
@@ -474,11 +482,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...Typography.h3,
-    color: Colors.dark.text,
+    color: colors.text,
   },
   emptySubtitle: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.sm,
     textAlign: 'center',
   },
@@ -489,16 +497,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCard: {
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     padding: Spacing.lg,
     maxHeight: '85%',
   },
   modalTitle: {
     ...Typography.h3,
-    color: Colors.dark.text,
+    color: colors.text,
     marginBottom: Spacing.md,
   },
   modalSection: {
@@ -514,36 +522,36 @@ const styles = StyleSheet.create({
   },
   modalLabel: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
   },
   modalValue: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
     marginTop: Spacing.xs,
   },
   modalHint: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   sectionDivider: {
     height: 1,
-    backgroundColor: Colors.dark.border,
+    backgroundColor: colors.border,
     marginVertical: Spacing.md,
   },
   subsectionTitle: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
     marginBottom: Spacing.sm,
   },
   modalList: {
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     overflow: 'hidden',
-    backgroundColor: Colors.dark.surface,
+    backgroundColor: colors.surface,
     maxHeight: 260,
   },
   lineRow: {
@@ -554,24 +562,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
+    borderBottomColor: colors.border,
   },
   lineLeft: {
     flex: 1,
   },
   lineTitle: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
   },
   lineSub: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   lineAmount: {
     ...Typography.caption,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
   },
   netRow: {
@@ -583,17 +591,17 @@ const styles = StyleSheet.create({
   },
   netLabel: {
     ...Typography.body,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '700',
   },
   netAmount: {
     ...Typography.body,
-    color: Colors.dark.tint,
+    color: colors.tint,
     fontWeight: '800',
   },
   noteText: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.sm,
   },
   modalActions: {
@@ -604,7 +612,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   primaryButton: {
-    backgroundColor: Colors.dark.buttonPrimary,
+    backgroundColor: colors.buttonPrimary,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -614,11 +622,11 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     ...Typography.caption,
-    color: Colors.dark.buttonPrimaryText,
+    color: colors.buttonPrimaryText,
     fontWeight: '700',
   },
   secondaryButton: {
-    backgroundColor: Colors.dark.buttonSecondary,
+    backgroundColor: colors.buttonSecondary,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -626,13 +634,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.dark.borderLight,
+    borderColor: borderLight,
   },
   secondaryButtonText: {
     ...Typography.caption,
-    color: Colors.dark.buttonSecondaryText,
+    color: colors.buttonSecondaryText,
     fontWeight: '700',
   },
-});
+  });
 
 export default ProcurementScreen;

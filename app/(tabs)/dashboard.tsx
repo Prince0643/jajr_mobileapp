@@ -1,4 +1,5 @@
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import { SessionManager } from '@/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -15,7 +16,9 @@ type QuickAction = {
 
 const DashboardScreen: React.FC = () => {
   const router = useRouter();
-  const colors = Colors.dark;
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState('');
 
@@ -180,207 +183,208 @@ const DashboardScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
-  content: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-    paddingTop: Spacing.lg,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-  },
-  headerTextCol: {
-    flex: 1,
-    paddingRight: Spacing.md,
-  },
-  title: {
-    ...Typography.h2,
-    color: Colors.dark.text,
-  },
-  subtitle: {
-    ...Typography.caption,
-    color: Colors.dark.textSecondary,
-    marginTop: Spacing.xs,
-  },
-  headerIconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 22,
-    backgroundColor: Colors.dark.card,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  heroCard: {
-    backgroundColor: Colors.dark.tint,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    ...Shadows.md,
-    marginBottom: Spacing.lg,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  heroLeft: {
-    flex: 1,
-    paddingRight: Spacing.md,
-  },
-  heroLabel: {
-    ...Typography.caption,
-    color: Colors.dark.buttonPrimaryText,
-    opacity: 0.9,
-  },
-  heroValue: {
-    ...Typography.h1,
-    color: Colors.dark.buttonPrimaryText,
-    marginTop: Spacing.xs,
-  },
-  heroMeta: {
-    ...Typography.body,
-    color: Colors.dark.buttonPrimaryText,
-    opacity: 0.9,
-    marginTop: Spacing.xs,
-  },
-  heroRight: {
-    alignItems: 'flex-end',
-  },
-  heroPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  heroPillText: {
-    ...Typography.caption,
-    color: Colors.dark.buttonPrimaryText,
-    marginLeft: 8,
-    fontWeight: '600',
-  },
-  heroDivider: {
-    height: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
-    marginVertical: Spacing.lg,
-  },
-  heroBottomRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  heroStat: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.12)',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  heroStatLabel: {
-    ...Typography.caption,
-    color: Colors.dark.buttonPrimaryText,
-    opacity: 0.9,
-  },
-  heroStatValue: {
-    ...Typography.h3,
-    color: Colors.dark.buttonPrimaryText,
-    marginTop: Spacing.xs,
-  },
-  heroStatHint: {
-    ...Typography.caption,
-    color: Colors.dark.buttonPrimaryText,
-    opacity: 0.9,
-    marginTop: 2,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  sectionTitle: {
-    ...Typography.h3,
-    color: Colors.dark.text,
-  },
-  sectionMeta: {
-    ...Typography.caption,
-    color: Colors.dark.textSecondary,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  actionCard: {
-    width: '48%',
-    backgroundColor: Colors.dark.card,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    marginBottom: Spacing.md,
-  },
-  actionIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.dark.tint,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  actionTitle: {
-    ...Typography.body,
-    fontWeight: '700',
-    color: Colors.dark.text,
-  },
-  actionSubtitle: {
-    ...Typography.caption,
-    color: Colors.dark.textSecondary,
-    marginTop: 2,
-  },
-  listCard: {
-    backgroundColor: Colors.dark.card,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    overflow: 'hidden',
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  listRowLast: {
-    borderBottomWidth: 0,
-  },
-  listRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    paddingRight: Spacing.md,
-    gap: Spacing.sm,
-  },
-  listRowLabel: {
-    ...Typography.body,
-    color: Colors.dark.text,
-  },
-  listRowValue: {
-    ...Typography.caption,
-    color: Colors.dark.textSecondary,
-  },
-});
+const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      paddingHorizontal: Spacing.lg,
+      paddingBottom: Spacing.xxl,
+      paddingTop: Spacing.lg,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.lg,
+    },
+    headerTextCol: {
+      flex: 1,
+      paddingRight: Spacing.md,
+    },
+    title: {
+      ...Typography.h2,
+      color: colors.text,
+    },
+    subtitle: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+      marginTop: Spacing.xs,
+    },
+    headerIconButton: {
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 22,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    heroCard: {
+      backgroundColor: colors.tint,
+      borderRadius: BorderRadius.xl,
+      padding: Spacing.lg,
+      ...Shadows.md,
+      marginBottom: Spacing.lg,
+    },
+    heroTopRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+    },
+    heroLeft: {
+      flex: 1,
+      paddingRight: Spacing.md,
+    },
+    heroLabel: {
+      ...Typography.caption,
+      color: colors.buttonPrimaryText,
+      opacity: 0.9,
+    },
+    heroValue: {
+      ...Typography.h1,
+      color: colors.buttonPrimaryText,
+      marginTop: Spacing.xs,
+    },
+    heroMeta: {
+      ...Typography.body,
+      color: colors.buttonPrimaryText,
+      opacity: 0.9,
+      marginTop: Spacing.xs,
+    },
+    heroRight: {
+      alignItems: 'flex-end',
+    },
+    heroPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.18)',
+      borderRadius: 999,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+    },
+    heroPillText: {
+      ...Typography.caption,
+      color: colors.buttonPrimaryText,
+      marginLeft: 8,
+      fontWeight: '600',
+    },
+    heroDivider: {
+      height: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.18)',
+      marginVertical: Spacing.lg,
+    },
+    heroBottomRow: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+    },
+    heroStat: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.12)',
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.md,
+    },
+    heroStatLabel: {
+      ...Typography.caption,
+      color: colors.buttonPrimaryText,
+      opacity: 0.9,
+    },
+    heroStatValue: {
+      ...Typography.h3,
+      color: colors.buttonPrimaryText,
+      marginTop: Spacing.xs,
+    },
+    heroStatHint: {
+      ...Typography.caption,
+      color: colors.buttonPrimaryText,
+      opacity: 0.9,
+      marginTop: 2,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      marginTop: Spacing.md,
+      marginBottom: Spacing.sm,
+    },
+    sectionTitle: {
+      ...Typography.h3,
+      color: colors.text,
+    },
+    sectionMeta: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    actionCard: {
+      width: '48%',
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: Spacing.md,
+    },
+    actionIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.tint,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.sm,
+    },
+    actionTitle: {
+      ...Typography.body,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    actionSubtitle: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    listCard: {
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    listRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    listRowLast: {
+      borderBottomWidth: 0,
+    },
+    listRowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      paddingRight: Spacing.md,
+      gap: Spacing.sm,
+    },
+    listRowLabel: {
+      ...Typography.body,
+      color: colors.text,
+    },
+    listRowValue: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+    },
+  });
 
 export default DashboardScreen;

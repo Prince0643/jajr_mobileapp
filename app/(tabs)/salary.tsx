@@ -1,13 +1,15 @@
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
+import { ApiService } from '@/services/api';
 import React, { useMemo, useState } from 'react';
 import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -44,100 +46,186 @@ const PERIOD_TYPE_LABEL: Record<PayPeriodType, string> = {
   monthly: 'Monthly',
 };
 
-const MOCK_EMPLOYEES: EmployeeOption[] = [
-  { id: 12, name: 'Cesar Abubo', branch: 'Sto. Rosario', dailyRate: 600 },
-  { id: 61, name: 'Carl Jhunell Acas', branch: 'Sto. Rosario', dailyRate: 600 },
+const DEFAULT_EMPLOYEES: EmployeeOption[] = [
+  { id: 12, name: 'CESAR ABUBO', branch: 'Sto. Rosario', dailyRate: 600 },
+  { id: 61, name: 'CARL JHUNELL ACAS', branch: 'Sto. Rosario', dailyRate: 600 },
   { id: 6, name: 'Super Admin', branch: 'Sto. Rosario', dailyRate: 600 },
 ];
 
-const MOCK_PAYSLIPS: Payslip[] = [
-  {
-    id: 'PS-2026-02-01-0001',
-    employeeId: 12,
-    employeeName: 'Cesar Abubo',
-    branchName: 'Sto. Rosario',
-    periodType: 'weekly',
-    periodLabel: 'Jan 27 - Feb 02, 2026',
-    createdAtLabel: 'Feb 02, 2026',
-    earnings: [
-      { label: 'Basic Pay (6 days)', amount: 3600 },
-      { label: 'Overtime Pay', amount: 450 },
-      { label: 'Performance Bonus', amount: 750 },
-    ],
-    deductions: [
-      { label: 'Late / Absences', amount: 0 },
-      { label: 'Cash Advance', amount: 300 },
-      { label: 'Other Deduction', amount: 0 },
-    ],
-    notes: 'UI only. Figures are sample values.',
-  },
-  {
-    id: 'PS-2026-01-31-0007',
-    employeeId: 61,
-    employeeName: 'Carl Jhunell Acas',
-    branchName: 'Sto. Rosario',
-    periodType: 'monthly',
-    periodLabel: 'Jan 01 - Jan 31, 2026',
-    createdAtLabel: 'Feb 01, 2026',
-    earnings: [
-      { label: 'Basic Pay (26 days)', amount: 15600 },
-      { label: 'Allowances', amount: 1000 },
-      { label: 'Performance Bonus', amount: 500 },
-    ],
-    deductions: [
-      { label: 'SSS', amount: 500 },
-      { label: 'PhilHealth', amount: 300 },
-      { label: 'Pag-IBIG', amount: 200 },
-    ],
-    notes: 'UI only. Deductions are placeholders.',
-  },
-  {
-    id: 'PS-2026-01-31-0012',
-    employeeId: 6,
-    employeeName: 'Super Admin',
-    branchName: 'Sto. Rosario',
-    periodType: 'daily',
-    periodLabel: 'Jan 31, 2026',
-    createdAtLabel: 'Jan 31, 2026',
-    earnings: [
-      { label: 'Daily Rate', amount: 600 },
-      { label: 'Performance Bonus', amount: 250 },
-    ],
-    deductions: [{ label: 'Other Deduction', amount: 0 }],
-    notes: 'UI only.',
-  },
-];
+const FIXED_DEDUCTIONS = {
+  sss: 450,
+  philhealth: 250,
+  pagibig: 200,
+  withholdingTax: 150,
+} as const;
 
 const formatMoney = (value: number) => {
   return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const formatPhp = (value: number) => {
+  const sign = value < 0 ? '-' : '';
+  return `${sign}₱ ${formatMoney(Math.abs(value))}`;
+};
+
+const parsePhpInput = (value: string) => {
+  const cleaned = value.replace(/[^0-9.]/g, '');
+  const parsed = Number.parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const monthLabel = (d: Date) =>
+  d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+  });
+
+const getMonthRange = (d: Date) => {
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 0);
+  return { start, end, year, month, daysInMonth: end.getDate() };
+};
+
+const dateToYmd = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const countDaysPresentForMonth = async (employeeId: number, monthDate: Date) => {
+  const { start, daysInMonth } = getMonthRange(monthDate);
+  const dates: string[] = [];
+  for (let i = 0; i < daysInMonth; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    dates.push(dateToYmd(d));
+  }
+
+  const presentDays = new Set<string>();
+  let cursor = 0;
+  const concurrency = 5;
+
+  const worker = async () => {
+    while (cursor < dates.length) {
+      const idx = cursor;
+      cursor += 1;
+      const ymd = dates[idx];
+      try {
+        const res = await ApiService.getShiftLogsToday({ employee_id: employeeId, date: ymd, limit: 200 });
+        if (!res?.success) continue;
+        const logs = Array.isArray((res as any)?.logs) ? (res as any).logs : [];
+        const hasPresence = logs.some((l: any) => Boolean(l?.time_in) || String(l?.status ?? '').toLowerCase() === 'present' || String(l?.status ?? '').toLowerCase() === 'late');
+        if (hasPresence) presentDays.add(ymd);
+      } catch {
+        // ignore per-day failure; we show aggregate error only if all fail
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  return presentDays.size;
+};
+
+const computeTotals = (p: Payslip | null) => {
+  const earningsTotal = (p?.earnings ?? []).reduce((sum, l) => sum + l.amount, 0);
+  const deductionsTotal = (p?.deductions ?? []).reduce((sum, l) => sum + Math.abs(l.amount), 0);
+  const netPay = earningsTotal - deductionsTotal;
+  return { earningsTotal, deductionsTotal, netPay };
+};
+
 const SalaryScreen: React.FC = () => {
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
+  const borderLight = ('borderLight' in colors ? (colors as any).borderLight : undefined) ?? colors.border;
+  const styles = useMemo(() => createStyles(colors, borderLight), [borderLight, colors]);
+
   const [employeeQuery, setEmployeeQuery] = useState('');
   const [periodType, setPeriodType] = useState<PayPeriodType>('weekly');
-  const [activeEmployee, setActiveEmployee] = useState<EmployeeOption>(MOCK_EMPLOYEES[0]);
+  const [activeEmployee, setActiveEmployee] = useState<EmployeeOption>(DEFAULT_EMPLOYEES[0]);
   const [employeePickerOpen, setEmployeePickerOpen] = useState(false);
   const [selectedPayslip, setSelectedPayslip] = useState<Payslip | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const [bonusInput, setBonusInput] = useState('0');
+  const performanceBonus = useMemo(() => parsePhpInput(bonusInput), [bonusInput]);
+
+  const [monthCursor, setMonthCursor] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  const [daysPresent, setDaysPresent] = useState<number>(0);
+  const [daysPresentLoading, setDaysPresentLoading] = useState(false);
+  const [daysPresentError, setDaysPresentError] = useState<string>('');
 
   const employeeOptions = useMemo(() => {
     const q = employeeQuery.trim().toLowerCase();
-    if (!q) return MOCK_EMPLOYEES;
-    return MOCK_EMPLOYEES.filter((e) => e.name.toLowerCase().includes(q) || String(e.id).includes(q));
+    if (!q) return DEFAULT_EMPLOYEES;
+    return DEFAULT_EMPLOYEES.filter((e) => e.name.toLowerCase().includes(q) || String(e.id).includes(q));
   }, [employeeQuery]);
 
-  const payslipHistory = useMemo(() => {
-    return MOCK_PAYSLIPS.filter((p) => p.employeeId === activeEmployee.id && p.periodType === periodType);
-  }, [activeEmployee.id, periodType]);
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setDaysPresentError('');
+        setDaysPresentLoading(true);
+        const count = await countDaysPresentForMonth(activeEmployee.id, monthCursor);
+        if (!alive) return;
+        setDaysPresent(count);
+      } catch (e: any) {
+        if (!alive) return;
+        setDaysPresentError(String(e?.message || 'Failed to load attendance for this month'));
+      } finally {
+        if (!alive) return;
+        setDaysPresentLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [activeEmployee.id, monthCursor]);
 
   const currentPayslip = useMemo(() => {
-    return payslipHistory[0] ?? null;
-  }, [payslipHistory]);
+    const { start, end } = getMonthRange(monthCursor);
+    const periodLabel = `${start.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}`;
+
+    const basePay = daysPresent * (activeEmployee.dailyRate || 0);
+    const earnings: PayslipLine[] = [
+      { label: `Basic Pay (${daysPresent} days)`, amount: basePay },
+      { label: 'Performance Bonus', amount: performanceBonus },
+    ];
+
+    const deductions: PayslipLine[] = [
+      { label: 'SSS', amount: -FIXED_DEDUCTIONS.sss },
+      { label: 'PhilHealth', amount: -FIXED_DEDUCTIONS.philhealth },
+      { label: 'Pag-IBIG', amount: -FIXED_DEDUCTIONS.pagibig },
+      { label: 'Withholding Tax', amount: -FIXED_DEDUCTIONS.withholdingTax },
+    ];
+
+    return {
+      id: `PS-${dateToYmd(monthCursor)}-${String(activeEmployee.id).padStart(4, '0')}`,
+      employeeId: activeEmployee.id,
+      employeeName: activeEmployee.name,
+      branchName: activeEmployee.branch,
+      periodType,
+      periodLabel,
+      createdAtLabel: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      earnings,
+      deductions,
+      notes: daysPresentLoading ? 'Loading attendance…' : daysPresentError ? `Attendance: ${daysPresentError}` : undefined,
+    };
+  }, [activeEmployee, daysPresent, daysPresentError, daysPresentLoading, monthCursor, performanceBonus, periodType]);
+
+  const payslipHistory = useMemo(() => {
+    return [] as Payslip[];
+  }, []);
 
   const totals = useMemo(() => {
-    const earningsTotal = (currentPayslip?.earnings ?? []).reduce((sum, l) => sum + l.amount, 0);
-    const deductionsTotal = (currentPayslip?.deductions ?? []).reduce((sum, l) => sum + l.amount, 0);
-    const netPay = earningsTotal - deductionsTotal;
-    return { earningsTotal, deductionsTotal, netPay };
+    return computeTotals(currentPayslip);
   }, [currentPayslip]);
 
   return (
@@ -187,13 +275,32 @@ const SalaryScreen: React.FC = () => {
           </View>
 
           <View style={styles.placeholderRow}>
+            <Pressable
+              style={styles.placeholderPill}
+              onPress={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+            >
+              <Text style={styles.placeholderPillText}>Prev</Text>
+            </Pressable>
             <View style={styles.placeholderPill}>
-              <Text style={styles.placeholderPillText}>Cutoff dates (soon)</Text>
+              <Text style={styles.placeholderPillText}>{monthLabel(monthCursor)}</Text>
             </View>
-            <View style={styles.placeholderPill}>
-              <Text style={styles.placeholderPillText}>Include adjustments (soon)</Text>
-            </View>
+            <Pressable
+              style={styles.placeholderPill}
+              onPress={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+            >
+              <Text style={styles.placeholderPillText}>Next</Text>
+            </Pressable>
           </View>
+
+          <Text style={[styles.sectionLabel, { marginTop: Spacing.md }]}>Performance Bonus (PHP)</Text>
+          <TextInput
+            value={bonusInput}
+            onChangeText={setBonusInput}
+            placeholder="0"
+            keyboardType="decimal-pad"
+            placeholderTextColor={colors.textDisabled}
+            style={styles.searchInput}
+          />
         </View>
 
         <View style={styles.summaryRow}>
@@ -217,69 +324,70 @@ const SalaryScreen: React.FC = () => {
             <Text style={styles.sectionMeta}>{currentPayslip ? currentPayslip.periodLabel : '—'}</Text>
           </View>
 
-          {!currentPayslip ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No payslip yet</Text>
-              <Text style={styles.emptySubtitle}>Generate a payslip for this employee and cutoff.</Text>
+          <View style={styles.payslipBody}>
+            <View style={styles.kvRow}>
+              <Text style={styles.kvLabel}>Payslip No.</Text>
+              <Text style={styles.kvValue}>{currentPayslip.id}</Text>
             </View>
-          ) : (
-            <View style={styles.payslipBody}>
-              <View style={styles.kvRow}>
-                <Text style={styles.kvLabel}>Payslip No.</Text>
-                <Text style={styles.kvValue}>{currentPayslip.id}</Text>
-              </View>
-              <View style={styles.kvRow}>
-                <Text style={styles.kvLabel}>Employee</Text>
-                <Text style={styles.kvValue}>{currentPayslip.employeeName}</Text>
-              </View>
-              <View style={styles.kvRow}>
-                <Text style={styles.kvLabel}>Branch</Text>
-                <Text style={styles.kvValue}>{currentPayslip.branchName}</Text>
-              </View>
-              <View style={styles.kvRow}>
-                <Text style={styles.kvLabel}>Period</Text>
-                <Text style={styles.kvValue}>{currentPayslip.periodLabel}</Text>
-              </View>
-
-              <View style={styles.sectionDivider} />
-
-              <Text style={styles.subsectionTitle}>Earnings</Text>
-              {currentPayslip.earnings.map((l) => (
-                <View key={l.label} style={styles.lineRow}>
-                  <Text style={styles.lineLabel}>{l.label}</Text>
-                  <Text style={styles.lineAmount}>₱ {formatMoney(l.amount)}</Text>
-                </View>
-              ))}
-
-              <View style={styles.sectionDivider} />
-
-              <Text style={styles.subsectionTitle}>Deductions</Text>
-              {currentPayslip.deductions.map((l) => (
-                <View key={l.label} style={styles.lineRow}>
-                  <Text style={styles.lineLabel}>{l.label}</Text>
-                  <Text style={styles.lineAmount}>₱ {formatMoney(l.amount)}</Text>
-                </View>
-              ))}
-
-              <View style={styles.sectionDivider} />
-
-              <View style={styles.netRow}>
-                <Text style={styles.netLabel}>Net Pay</Text>
-                <Text style={styles.netAmount}>₱ {formatMoney(totals.netPay)}</Text>
-              </View>
-
-              <Text style={styles.noteText}>{currentPayslip.notes || ''}</Text>
-
-              <View style={styles.modalActions}>
-                <Pressable style={styles.secondaryButton}>
-                  <Text style={styles.secondaryButtonText}>Preview</Text>
-                </Pressable>
-                <Pressable style={styles.primaryButton} onPress={() => setSelectedPayslip(currentPayslip)}>
-                  <Text style={styles.primaryButtonText}>View</Text>
-                </Pressable>
-              </View>
+            <View style={styles.kvRow}>
+              <Text style={styles.kvLabel}>Employee</Text>
+              <Text style={styles.kvValue}>{currentPayslip.employeeName}</Text>
             </View>
-          )}
+            <View style={styles.kvRow}>
+              <Text style={styles.kvLabel}>Branch</Text>
+              <Text style={styles.kvValue}>{currentPayslip.branchName}</Text>
+            </View>
+            <View style={styles.kvRow}>
+              <Text style={styles.kvLabel}>Period</Text>
+              <Text style={styles.kvValue}>{currentPayslip.periodLabel}</Text>
+            </View>
+            <View style={styles.kvRow}>
+              <Text style={styles.kvLabel}>Days Present</Text>
+              <Text style={styles.kvValue}>{daysPresentLoading ? 'Loading…' : String(daysPresent)}</Text>
+            </View>
+
+            <View style={styles.sectionDivider} />
+
+            <Text style={styles.subsectionTitle}>Earnings</Text>
+            {currentPayslip.earnings.map((l) => (
+              <View key={l.label} style={styles.lineRow}>
+                <Text style={styles.lineLabel}>{l.label}</Text>
+                <Text style={styles.lineAmount}>{formatPhp(l.amount)}</Text>
+              </View>
+            ))}
+
+            <View style={styles.sectionDivider} />
+
+            <Text style={styles.subsectionTitle}>Deductions</Text>
+            {currentPayslip.deductions.map((l) => (
+              <View key={l.label} style={styles.lineRow}>
+                <Text style={styles.lineLabel}>{l.label}</Text>
+                <Text style={styles.lineAmount}>{formatPhp(l.amount)}</Text>
+              </View>
+            ))}
+
+            <View style={styles.sectionDivider} />
+
+            <View style={styles.netRow}>
+              <Text style={styles.netLabel}>Total Deductions</Text>
+              <Text style={styles.netAmount}>{formatPhp(-totals.deductionsTotal)}</Text>
+            </View>
+            <View style={[styles.netRow, { marginTop: Spacing.sm }]}>
+              <Text style={styles.netLabel}>Net Pay</Text>
+              <Text style={styles.netAmount}>{formatPhp(totals.netPay)}</Text>
+            </View>
+
+            {!!currentPayslip.notes ? <Text style={styles.noteText}>{currentPayslip.notes}</Text> : null}
+
+            <View style={styles.modalActions}>
+              <Pressable style={styles.secondaryButton} onPress={() => setPreviewOpen(true)}>
+                <Text style={styles.secondaryButtonText}>Preview</Text>
+              </Pressable>
+              <Pressable style={styles.primaryButton} onPress={() => setSelectedPayslip(currentPayslip)}>
+                <Text style={styles.primaryButtonText}>View Details</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
 
         <View style={styles.listCard}>
@@ -325,7 +433,7 @@ const SalaryScreen: React.FC = () => {
               value={employeeQuery}
               onChangeText={setEmployeeQuery}
               placeholder="Search name or ID"
-              placeholderTextColor={Colors.dark.textDisabled}
+              placeholderTextColor={colors.textDisabled}
               style={styles.searchInput}
             />
 
@@ -367,79 +475,146 @@ const SalaryScreen: React.FC = () => {
         transparent
         animationType="fade"
         onRequestClose={() => setSelectedPayslip(null)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setSelectedPayslip(null)}>
-          <Pressable style={styles.modalCard} onPress={() => undefined}>
-            <Text style={styles.modalTitle}>Payslip Details</Text>
+        <View style={styles.modalOverlay}>
+          <Pressable style={[StyleSheet.absoluteFill, { zIndex: 0 }]} onPress={() => setSelectedPayslip(null)} />
+          <View style={styles.modalCard}>
+            <ScrollView
+              style={styles.modalScroll}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+              <Text style={styles.modalTitle}>Payslip Details</Text>
 
-            <View style={styles.modalSection}>
-              <Text style={styles.modalLabel}>Payslip No.</Text>
-              <Text style={styles.modalValue}>{selectedPayslip?.id}</Text>
-              <Text style={styles.modalHint}>{selectedPayslip?.createdAtLabel}</Text>
-            </View>
-
-            <View style={styles.modalSection}>
-              <Text style={styles.modalLabel}>Employee</Text>
-              <Text style={styles.modalValue}>{selectedPayslip?.employeeName}</Text>
-              <Text style={styles.modalHint}>ID: {selectedPayslip?.employeeId} • {selectedPayslip?.branchName}</Text>
-            </View>
-
-            <View style={styles.modalSection}>
-              <Text style={styles.modalLabel}>Period</Text>
-              <Text style={styles.modalValue}>{selectedPayslip?.periodLabel}</Text>
-              <Text style={styles.modalHint}>{selectedPayslip ? PERIOD_TYPE_LABEL[selectedPayslip.periodType] : ''}</Text>
-            </View>
-
-            <View style={styles.sectionDivider} />
-
-            <Text style={styles.subsectionTitle}>Earnings</Text>
-            {(selectedPayslip?.earnings ?? []).map((l) => (
-              <View key={l.label} style={styles.lineRow}>
-                <Text style={styles.lineLabel}>{l.label}</Text>
-                <Text style={styles.lineAmount}>₱ {formatMoney(l.amount)}</Text>
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>Payslip No.</Text>
+                <Text style={styles.modalValue}>{selectedPayslip?.id}</Text>
+                <Text style={styles.modalHint}>{selectedPayslip?.createdAtLabel}</Text>
               </View>
-            ))}
 
-            <View style={styles.sectionDivider} />
-
-            <Text style={styles.subsectionTitle}>Deductions</Text>
-            {(selectedPayslip?.deductions ?? []).map((l) => (
-              <View key={l.label} style={styles.lineRow}>
-                <Text style={styles.lineLabel}>{l.label}</Text>
-                <Text style={styles.lineAmount}>₱ {formatMoney(l.amount)}</Text>
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>Employee</Text>
+                <Text style={styles.modalValue}>{selectedPayslip?.employeeName}</Text>
+                <Text style={styles.modalHint}>ID: {selectedPayslip?.employeeId} • {selectedPayslip?.branchName}</Text>
               </View>
-            ))}
 
-            <View style={styles.sectionDivider} />
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>Period</Text>
+                <Text style={styles.modalValue}>{selectedPayslip?.periodLabel}</Text>
+                <Text style={styles.modalHint}>{selectedPayslip ? PERIOD_TYPE_LABEL[selectedPayslip.periodType] : ''}</Text>
+              </View>
 
-            <View style={styles.netRow}>
-              <Text style={styles.netLabel}>Net Pay</Text>
-              <Text style={styles.netAmount}>
-                ₱ {formatMoney(
-                  (selectedPayslip?.earnings ?? []).reduce((s, l) => s + l.amount, 0) -
-                    (selectedPayslip?.deductions ?? []).reduce((s, l) => s + l.amount, 0)
-                )}
-              </Text>
-            </View>
+              <View style={styles.sectionDivider} />
 
-            <View style={styles.modalActions}>
-              <Pressable style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>Print</Text>
-              </Pressable>
-              <Pressable style={styles.primaryButton} onPress={() => setSelectedPayslip(null)}>
-                <Text style={styles.primaryButtonText}>Close</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
+              <Text style={styles.subsectionTitle}>Earnings</Text>
+              {(selectedPayslip?.earnings ?? []).map((l) => (
+                <View key={l.label} style={styles.lineRow}>
+                  <Text style={styles.lineLabel}>{l.label}</Text>
+                  <Text style={styles.lineAmount}>{formatPhp(l.amount)}</Text>
+                </View>
+              ))}
+
+              <View style={styles.sectionDivider} />
+
+              <Text style={styles.subsectionTitle}>Deductions</Text>
+              {(selectedPayslip?.deductions ?? []).map((l) => (
+                <View key={l.label} style={styles.lineRow}>
+                  <Text style={styles.lineLabel}>{l.label}</Text>
+                  <Text style={styles.lineAmount}>{formatPhp(l.amount)}</Text>
+                </View>
+              ))}
+
+              <View style={styles.sectionDivider} />
+
+              <View style={styles.netRow}>
+                <Text style={styles.netLabel}>Total Deductions</Text>
+                <Text style={styles.netAmount}>{formatPhp(-computeTotals(selectedPayslip).deductionsTotal)}</Text>
+              </View>
+
+              <View style={styles.netRow}>
+                <Text style={styles.netLabel}>Net Pay</Text>
+                <Text style={styles.netAmount}>{formatPhp(computeTotals(selectedPayslip).netPay)}</Text>
+              </View>
+
+              <View style={styles.modalActions}>
+                <Pressable style={styles.secondaryButton}>
+                  <Text style={styles.secondaryButtonText}>Print</Text>
+                </Pressable>
+                <Pressable style={styles.primaryButton} onPress={() => setSelectedPayslip(null)}>
+                  <Text style={styles.primaryButtonText}>Close</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={previewOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={[StyleSheet.absoluteFill, { zIndex: 0 }]} onPress={() => setPreviewOpen(false)} />
+          <View style={styles.modalCard}>
+            <ScrollView
+              style={styles.modalScroll}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+              <Text style={styles.modalTitle}>Payslip Preview</Text>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>Employee</Text>
+                <Text style={styles.modalValue}>{currentPayslip.employeeName}</Text>
+                <Text style={styles.modalHint}>ID: {currentPayslip.employeeId} • {currentPayslip.branchName}</Text>
+              </View>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>Month</Text>
+                <Text style={styles.modalValue}>{monthLabel(monthCursor)}</Text>
+                <Text style={styles.modalHint}>Days present: {daysPresentLoading ? 'Loading…' : daysPresent}</Text>
+              </View>
+
+              <View style={styles.sectionDivider} />
+
+              <View style={styles.netRow}>
+                <Text style={styles.netLabel}>Gross Earnings</Text>
+                <Text style={styles.netAmount}>{formatPhp(totals.earningsTotal)}</Text>
+              </View>
+              <View style={[styles.netRow, { marginTop: Spacing.sm }]}>
+                <Text style={styles.netLabel}>Total Deductions</Text>
+                <Text style={styles.netAmount}>{formatPhp(-totals.deductionsTotal)}</Text>
+              </View>
+              <View style={[styles.netRow, { marginTop: Spacing.sm }]}>
+                <Text style={styles.netLabel}>Net Pay</Text>
+                <Text style={styles.netAmount}>{formatPhp(totals.netPay)}</Text>
+              </View>
+
+              <View style={styles.modalActions}>
+                <Pressable style={styles.secondaryButton} onPress={() => setPreviewOpen(false)}>
+                  <Text style={styles.secondaryButtonText}>Close</Text>
+                </Pressable>
+                <Pressable style={styles.primaryButton} onPress={() => setSelectedPayslip(currentPayslip)}>
+                  <Text style={styles.primaryButtonText}>View Details</Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight: string) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
+    backgroundColor: colors.background,
   },
   content: {
     padding: Spacing.lg,
@@ -462,19 +637,19 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.h2,
-    color: Colors.dark.text,
+    color: colors.text,
   },
   subtitle: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   searchCard: {
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     ...Shadows.sm,
   },
   selectRow: {
@@ -482,10 +657,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.md,
-    backgroundColor: Colors.dark.inputBackground,
+    backgroundColor: colors.inputBackground,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.dark.inputBorder,
+    borderColor: colors.inputBorder,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
   },
@@ -494,32 +669,32 @@ const styles = StyleSheet.create({
   },
   selectValue: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
   },
   selectHint: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   selectChevron: {
     ...Typography.caption,
-    color: Colors.dark.tint,
+    color: colors.tint,
     fontWeight: '700',
   },
   sectionLabel: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginBottom: Spacing.sm,
   },
   searchInput: {
-    backgroundColor: Colors.dark.inputBackground,
+    backgroundColor: colors.inputBackground,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.dark.inputBorder,
+    borderColor: colors.inputBorder,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    color: Colors.dark.text,
+    color: colors.text,
   },
   filtersRow: {
     flexDirection: 'row',
@@ -533,22 +708,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipActive: {
-    backgroundColor: Colors.dark.tint,
-    borderColor: Colors.dark.tint,
+    backgroundColor: colors.tint,
+    borderColor: colors.tint,
   },
   chipInactive: {
-    backgroundColor: Colors.dark.surface,
-    borderColor: Colors.dark.borderLight,
+    backgroundColor: colors.surface,
+    borderColor: borderLight,
   },
   chipText: {
     ...Typography.caption,
   },
   chipTextActive: {
-    color: Colors.dark.buttonPrimaryText,
+    color: colors.buttonPrimaryText,
     fontWeight: '600',
   },
   chipTextInactive: {
-    color: Colors.dark.text,
+    color: colors.text,
   },
   placeholderRow: {
     flexDirection: 'row',
@@ -560,13 +735,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.dark.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: Colors.dark.borderLight,
+    borderColor: borderLight,
   },
   placeholderPillText: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   summaryRow: {
@@ -576,28 +751,28 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     padding: Spacing.md,
     ...Shadows.sm,
   },
   summaryLabel: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
   },
   summaryValue: {
     ...Typography.h3,
-    color: Colors.dark.text,
+    color: colors.text,
     marginTop: Spacing.xs,
   },
   listCard: {
     marginTop: Spacing.lg,
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     overflow: 'hidden',
     ...Shadows.sm,
   },
@@ -621,21 +796,21 @@ const styles = StyleSheet.create({
   },
   kvLabel: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
   },
   kvValue: {
     ...Typography.caption,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
   },
   sectionDivider: {
     height: 1,
-    backgroundColor: Colors.dark.border,
+    backgroundColor: colors.border,
     marginVertical: Spacing.md,
   },
   subsectionTitle: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
     marginBottom: Spacing.sm,
   },
@@ -648,12 +823,12 @@ const styles = StyleSheet.create({
   },
   lineLabel: {
     ...Typography.caption,
-    color: Colors.dark.text,
+    color: colors.text,
     flex: 1,
   },
   lineAmount: {
     ...Typography.caption,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
   },
   netRow: {
@@ -665,32 +840,32 @@ const styles = StyleSheet.create({
   },
   netLabel: {
     ...Typography.body,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '700',
   },
   netAmount: {
     ...Typography.body,
-    color: Colors.dark.tint,
+    color: colors.tint,
     fontWeight: '800',
   },
   noteText: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.sm,
   },
   sectionTitle: {
     ...Typography.h3,
-    color: Colors.dark.text,
+    color: colors.text,
   },
   sectionMeta: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
   },
   row: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
+    borderTopColor: colors.border,
   },
   rowTop: {
     flexDirection: 'row',
@@ -705,27 +880,27 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '600',
   },
   rowSubtitle: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   bonus: {
     ...Typography.body,
-    color: Colors.dark.tint,
+    color: colors.tint,
     fontWeight: '700',
   },
   score: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   rowNote: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.sm,
   },
   emptyState: {
@@ -734,11 +909,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...Typography.h3,
-    color: Colors.dark.text,
+    color: colors.text,
   },
   emptySubtitle: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.sm,
     textAlign: 'center',
   },
@@ -749,16 +924,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCard: {
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: Spacing.lg,
+    borderColor: colors.border,
     maxHeight: '85%',
+    zIndex: 1,
+    elevation: 6,
+  },
+  modalScroll: {
+    flexGrow: 0,
+  },
+  modalScrollContent: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.lg,
   },
   modalTitle: {
     ...Typography.h3,
-    color: Colors.dark.text,
+    color: colors.text,
     marginBottom: Spacing.md,
   },
   modalSection: {
@@ -774,17 +957,17 @@ const styles = StyleSheet.create({
   },
   modalLabel: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
   },
   modalValue: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '600',
     marginTop: Spacing.xs,
   },
   modalHint: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   modalActions: {
@@ -797,43 +980,43 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderColor: colors.border,
     overflow: 'hidden',
-    backgroundColor: Colors.dark.surface,
+    backgroundColor: colors.surface,
   },
   modalListRow: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
+    borderBottomColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
   modalListRowActive: {
-    backgroundColor: Colors.dark.card,
+    backgroundColor: colors.card,
   },
   modalListRowLeft: {
     flex: 1,
   },
   modalListRowTitle: {
     ...Typography.body,
-    color: Colors.dark.text,
+    color: colors.text,
     fontWeight: '700',
   },
   modalListRowSubtitle: {
     ...Typography.caption,
-    color: Colors.dark.textSecondary,
+    color: colors.textSecondary,
     marginTop: Spacing.xs,
   },
   modalListRowTag: {
     ...Typography.caption,
-    color: Colors.dark.tint,
+    color: colors.tint,
     fontWeight: '700',
   },
   primaryButton: {
-    backgroundColor: Colors.dark.buttonPrimary,
+    backgroundColor: colors.buttonPrimary,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -843,11 +1026,11 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     ...Typography.caption,
-    color: Colors.dark.buttonPrimaryText,
+    color: colors.buttonPrimaryText,
     fontWeight: '700',
   },
   secondaryButton: {
-    backgroundColor: Colors.dark.buttonSecondary,
+    backgroundColor: colors.buttonSecondary,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -855,13 +1038,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.dark.borderLight,
+    borderColor: borderLight,
   },
   secondaryButtonText: {
     ...Typography.caption,
-    color: Colors.dark.buttonSecondaryText,
+    color: colors.buttonSecondaryText,
     fontWeight: '700',
   },
-});
+  });
 
 export default SalaryScreen;

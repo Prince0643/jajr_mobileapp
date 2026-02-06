@@ -1,4 +1,5 @@
 import { Colors } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -77,7 +78,8 @@ const EmployeeTimeLogsModal: React.FC<EmployeeTimeLogsModalProps> = ({
   isLoading = false,
   onClose,
 }) => {
-  const colors = Colors.dark;
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
 
   const [tick, setTick] = useState(0);
 

@@ -4,19 +4,20 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 
 export default function TabLayout() {
-  // Force dark mode
-  const isDarkMode = true;
+  const { resolvedTheme } = useThemeMode();
+  const themeColors = Colors[resolvedTheme];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.dark.tint,
-        tabBarInactiveTintColor: Colors.dark.tabIconDefault,
+        tabBarActiveTintColor: themeColors.tint,
+        tabBarInactiveTintColor: themeColors.tabIconDefault,
         tabBarStyle: {
-          backgroundColor: Colors.dark.card,
-          borderTopColor: Colors.dark.border,
+          backgroundColor: themeColors.card,
+          borderTopColor: themeColors.border,
         },
         headerShown: false,
         tabBarButton: HapticTab,

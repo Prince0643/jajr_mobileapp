@@ -1,4 +1,5 @@
 import { Colors, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import { Branch, Employee } from '@/types';
 import React, { useState } from 'react';
 import {
@@ -8,7 +9,6 @@ import {
     Text,
     View,
     ViewStyle,
-    useColorScheme
 } from 'react-native';
 import AttendanceConfirmDialog from './AttendanceConfirmDialog';
 import BranchListItem from './BranchListItem';
@@ -18,7 +18,9 @@ interface BranchListProps {
   onBranchPress: (branch: Branch, index: number) => void;
   onEmployeeTimeIn: (employee: Employee, branch: Branch) => void;
   onEmployeeTimeOut: (employee: Employee, branch: Branch) => void;
+  onEmployeeTransfer?: (employee: Employee, branch: Branch) => void;
   onEmployeeLongPress?: (employee: Employee, branch: Branch) => void;
+  onEmployeeSetOtHours?: (employee: Employee, otHours: string) => Promise<void> | void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
   style?: ViewStyle;
@@ -29,13 +31,15 @@ const BranchList: React.FC<BranchListProps> = ({
   onBranchPress,
   onEmployeeTimeIn,
   onEmployeeTimeOut,
+  onEmployeeTransfer,
   onEmployeeLongPress,
+  onEmployeeSetOtHours,
   onRefresh,
   isRefreshing = false,
   style,
 }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme || 'dark'];
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
   
   const [confirmDialog, setConfirmDialog] = useState<{
     visible: boolean;
@@ -49,8 +53,10 @@ const BranchList: React.FC<BranchListProps> = ({
     mode: 'time_in',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedNoBranchTarget, setSelectedNoBranchTarget] = useState<Branch | null>(null);
 
   const handleEmployeeTimeIn = (employee: Employee, branch: Branch) => {
+    setSelectedNoBranchTarget(null);
     setConfirmDialog({
       visible: true,
       employee,
@@ -72,9 +78,14 @@ const BranchList: React.FC<BranchListProps> = ({
     const { employee, branch } = confirmDialog;
     if (!employee || !branch) return;
 
+    const targetBranch =
+      branch.branchName === 'Pool' && selectedNoBranchTarget
+        ? selectedNoBranchTarget
+        : branch;
+
     setIsSubmitting(true);
     try {
-      await onEmployeeTimeIn(employee, branch);
+      await onEmployeeTimeIn(employee, targetBranch);
 
       setConfirmDialog({
         visible: false,
@@ -82,6 +93,7 @@ const BranchList: React.FC<BranchListProps> = ({
         branch: null,
         mode: 'time_in',
       });
+      setSelectedNoBranchTarget(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -119,13 +131,15 @@ const BranchList: React.FC<BranchListProps> = ({
       onBranchPress={() => onBranchPress(item, index)}
       onEmployeeTimeIn={handleEmployeeTimeIn}
       onEmployeeTimeOut={handleEmployeeTimeOut}
+      onEmployeeTransfer={onEmployeeTransfer}
       onEmployeeLongPress={onEmployeeLongPress}
+      onEmployeeSetOtHours={onEmployeeSetOtHours}
     />
   );
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Branches Found</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Projects Found</Text>
       <Text style={[styles.emptyMessage, { color: colors.textSecondary || colors.icon }]}>
         Pull down to refresh or check your connection.
       </Text>
@@ -156,6 +170,9 @@ const BranchList: React.FC<BranchListProps> = ({
         onCancel={() => setConfirmDialog({ ...confirmDialog, visible: false })}
         isLoading={isSubmitting}
         mode={confirmDialog.mode}
+        branchOptions={branches.filter((b) => b.branchName !== 'Pool')}
+        selectedBranch={selectedNoBranchTarget}
+        onSelectBranch={setSelectedNoBranchTarget}
       />
     </View>
   );

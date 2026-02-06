@@ -1,4 +1,6 @@
-import React from 'react';
+import { Colors } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
+import React, { useMemo } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
@@ -15,17 +17,21 @@ interface LoadingStateProps {
 const LoadingState: React.FC<LoadingStateProps> = ({
   message = 'Loading...',
   size = 'large',
-  color = '#007AFF',
+  color,
 }) => {
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
+  const finalColor = useMemo(() => color || colors.tint, [color, colors.tint]);
+
   return (
     <View style={styles.container} testID="loading-container">
       <ActivityIndicator 
         size={size} 
-        color={color} 
+        color={finalColor} 
         testID="activity-indicator"
       />
       {message && (
-        <Text style={[styles.message, { color }]} testID="loading-message">
+        <Text style={[styles.message, { color: finalColor }]} testID="loading-message">
           {message}
         </Text>
       )}
