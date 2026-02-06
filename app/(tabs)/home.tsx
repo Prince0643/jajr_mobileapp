@@ -5,10 +5,13 @@ import { ApiService } from '@/services/api';
 import { Branch, Employee } from '@/types';
 import { ErrorHandler, SessionManager } from '@/utils';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Modal,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -25,6 +28,8 @@ const HomeScreen: React.FC = () => {
   const [currentDate, setCurrentDate] = useState('');
   const [logoutVisible, setLogoutVisible] = useState(false);
   const [branchSearch, setBranchSearch] = useState('');
+  const [attendanceHelpVisible, setAttendanceHelpVisible] = useState(false);
+  const helpOpenedRef = useRef(false);
 
   // Transfer modal state
   const [transferModalVisible, setTransferModalVisible] = useState(false);
@@ -37,6 +42,7 @@ const HomeScreen: React.FC = () => {
   const [timeLogsLoading, setTimeLogsLoading] = useState(false);
   
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { resolvedTheme } = useThemeMode();
   const colors = Colors[resolvedTheme];
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -57,6 +63,15 @@ const HomeScreen: React.FC = () => {
     });
     setCurrentDate(formatted);
   }, []);
+
+  useEffect(() => {
+    const helpParam = String((params as any)?.help ?? '');
+    if (helpOpenedRef.current) return;
+    if (helpParam === 'attendance') {
+      helpOpenedRef.current = true;
+      setAttendanceHelpVisible(true);
+    }
+  }, [params]);
 
   const initializeData = async () => {
     try {
@@ -547,6 +562,52 @@ const HomeScreen: React.FC = () => {
         }}
       />
 
+      <Modal
+        visible={attendanceHelpVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAttendanceHelpVisible(false)}
+      >
+        <Pressable style={styles.helpOverlay} onPress={() => setAttendanceHelpVisible(false)}>
+          <Pressable style={styles.helpCard} onPress={() => undefined}>
+            <View style={styles.helpHeaderRow}>
+              <Text style={styles.helpTitle}>How to use Attendance</Text>
+              <Pressable onPress={() => setAttendanceHelpVisible(false)} style={styles.helpCloseButton}>
+                <Ionicons name="close" size={20} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.helpScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.helpSectionTitle}>Step-by-step</Text>
+              <View style={styles.helpStepList}>
+                <Text style={styles.helpStepText}>1. Tap any project name to open it (expand the project)</Text>
+                <Text style={styles.helpStepText}>2. Find an employee, then tap the employee card to Time In / Time Out</Text>
+                <Text style={styles.helpStepText}>3. Long-press an employee card to open Log Details (time in/out history)</Text>
+                <Text style={styles.helpStepText}>4. Tap the 3 dots (⋯) on the employee card for actions:</Text>
+                <Text style={styles.helpStepText}>   - Set OT: enter total OT hours for today, then Save</Text>
+                <Text style={styles.helpStepText}>   - Copy OT: copies the employee’s OT hours to clipboard</Text>
+                <Text style={styles.helpStepText}>   - Paste OT: pastes OT hours from clipboard into Set OT</Text>
+                <Text style={styles.helpStepText}>   - View Notes: view attendance/absent notes (if available)</Text>
+              </View>
+
+              <View style={styles.helpDivider} />
+
+              <Text style={styles.helpSectionTitle}>Filters</Text>
+              <View style={styles.helpStepList}>
+                <Text style={styles.helpStepText}>All: shows all employees in the project</Text>
+                <Text style={styles.helpStepText}>Present: shows employees who have timed in today (currently timed in)</Text>
+                <Text style={styles.helpStepText}>Absent: shows employees who have NOT timed in today</Text>
+                <Text style={styles.helpStepText}>OT: shows employees with OT hours saved for today</Text>
+              </View>
+            </ScrollView>
+
+            <Pressable style={styles.helpOkButton} onPress={() => setAttendanceHelpVisible(false)}>
+              <Text style={styles.helpOkText}>OK</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Transfer Modal */}
       {transferModalVisible && transferEmployee && transferFromBranch && (
         <View style={{
@@ -594,6 +655,82 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    helpOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.35)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: Spacing.lg,
+    },
+    helpCard: {
+      width: '100%',
+      maxWidth: 420,
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: Spacing.lg,
+    },
+    helpHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.sm,
+    },
+    helpTitle: {
+      ...Typography.body,
+      fontWeight: '800',
+      color: colors.text,
+      flex: 1,
+      paddingRight: Spacing.sm,
+    },
+    helpCloseButton: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    helpScroll: {
+      maxHeight: 320,
+    },
+    helpSectionTitle: {
+      ...Typography.caption,
+      color: colors.textSecondary,
+      fontWeight: '700',
+      marginTop: Spacing.sm,
+      marginBottom: Spacing.sm,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    helpStepList: {
+      gap: 8,
+    },
+    helpStepText: {
+      ...Typography.body,
+      color: colors.text,
+      lineHeight: 20,
+    },
+    helpDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: Spacing.lg,
+    },
+    helpOkButton: {
+      marginTop: Spacing.lg,
+      backgroundColor: colors.tint,
+      borderRadius: BorderRadius.md,
+      paddingVertical: Spacing.md,
+      alignItems: 'center',
+    },
+    helpOkText: {
+      ...Typography.body,
+      color: colors.buttonPrimaryText,
+      fontWeight: '800',
     },
     header: {
       backgroundColor: colors.tint,

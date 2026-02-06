@@ -56,7 +56,7 @@ const SettingsScreen: React.FC = () => {
       icon: 'help-circle-outline',
       title: 'Help & Support',
       subtitle: 'Get help with the app',
-      onPress: () => Alert.alert('Help', 'Help section coming soon'),
+      onPress: () => router.push('/help-support'),
     },
     {
       icon: 'information-circle-outline',
