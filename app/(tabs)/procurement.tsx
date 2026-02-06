@@ -1,7 +1,7 @@
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
-import React, { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type RequestStatus = 'draft' | 'pending' | 'approved' | 'ordered' | 'received' | 'cancelled';
@@ -86,210 +86,19 @@ const ProcurementScreen: React.FC = () => {
   const colors = Colors[resolvedTheme];
   const borderLight = ('borderLight' in colors ? (colors as any).borderLight : undefined) ?? colors.border;
   const styles = useMemo(() => createStyles(colors, borderLight), [borderLight, colors]);
-  const statusTone = useMemo<Record<RequestStatus, { bg: string; text: string; border: string }>>(
-    () => ({
-      draft: { bg: colors.surface, text: colors.text, border: borderLight },
-      pending: { bg: 'rgba(255, 215, 0, 0.15)', text: colors.tint, border: 'rgba(255, 215, 0, 0.35)' },
-      approved: { bg: 'rgba(76, 175, 80, 0.18)', text: '#7CFF84', border: 'rgba(76, 175, 80, 0.35)' },
-      ordered: { bg: 'rgba(33, 150, 243, 0.18)', text: '#8EC7FF', border: 'rgba(33, 150, 243, 0.35)' },
-      received: { bg: 'rgba(156, 39, 176, 0.18)', text: '#E2A6FF', border: 'rgba(156, 39, 176, 0.35)' },
-      cancelled: { bg: 'rgba(244, 67, 54, 0.18)', text: '#FF9E9E', border: 'rgba(244, 67, 54, 0.35)' },
-    }),
-    [borderLight, colors]
-  );
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<RequestStatus | 'all'>('all');
-  const [selected, setSelected] = useState<ProcurementRequest | null>(null);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return MOCK_REQUESTS.filter((r) => {
-      if (status !== 'all' && r.status !== status) return false;
-      if (!q) return true;
-      return (
-        r.id.toLowerCase().includes(q) ||
-        r.branchName.toLowerCase().includes(q) ||
-        r.requestedBy.toLowerCase().includes(q) ||
-        (r.supplierName ?? '').toLowerCase().includes(q)
-      );
-    });
-  }, [query, status]);
-
-  const summary = useMemo(() => {
-    const total = filtered.reduce((sum, r) => sum + computeTotal(r), 0);
-    const pending = filtered.filter((r) => r.status === 'pending').length;
-    const approved = filtered.filter((r) => r.status === 'approved').length;
-    return { count: filtered.length, total, pending, approved };
-  }, [filtered]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerTextCol}>
-            <Text style={styles.title}>Procurement</Text>
-            <Text style={styles.subtitle}>UI only • Requests, approvals, and receiving</Text>
+      <View style={styles.comingSoonWrap}>
+        <View style={styles.comingSoonCard}>
+          <View style={styles.comingSoonIcon}>
+            <Text style={styles.comingSoonIconText}>🛒</Text>
           </View>
-
-          <View style={styles.headerActions}>
-            <Pressable style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>Suppliers</Text>
-            </Pressable>
-            <Pressable style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>New</Text>
-            </Pressable>
-          </View>
+          <Text style={styles.comingSoonTitle}>Procurement</Text>
+          <Text style={styles.comingSoonSubtitle}>Coming soon</Text>
+          <Text style={styles.comingSoonHint}>We’re working on requests, approvals, and receiving.</Text>
         </View>
-
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Search</Text>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="PR no., branch, requester, supplier"
-            placeholderTextColor={colors.textDisabled}
-            style={styles.searchInput}
-          />
-
-          <View style={styles.filtersRow}>
-            {(['all', 'pending', 'approved', 'ordered', 'received'] as const).map((s) => {
-              const active = s === status;
-              return (
-                <Pressable
-                  key={s}
-                  onPress={() => setStatus(s)}
-                  style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}>
-                  <Text style={[styles.chipText, active ? styles.chipTextActive : styles.chipTextInactive]}>
-                    {s === 'all' ? 'All' : STATUS_LABEL[s]}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Requests</Text>
-            <Text style={styles.summaryValue}>{summary.count}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Pending</Text>
-            <Text style={styles.summaryValue}>{summary.pending}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Est. Total</Text>
-            <Text style={styles.summaryValue}>₱ {money(summary.total)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.listCard}>
-          <View style={styles.listHeaderRow}>
-            <Text style={styles.sectionTitle}>Purchase Requests</Text>
-            <Text style={styles.sectionMeta}>{status === 'all' ? 'All' : STATUS_LABEL[status]}</Text>
-          </View>
-
-          {filtered.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No requests</Text>
-              <Text style={styles.emptySubtitle}>Try changing the filter or search keywords.</Text>
-            </View>
-          ) : (
-            filtered.map((r) => {
-              const tone = statusTone[r.status];
-              return (
-                <Pressable key={r.id} style={styles.row} onPress={() => setSelected(r)}>
-                  <View style={styles.rowTop}>
-                    <View style={styles.rowLeft}>
-                      <Text style={styles.rowTitle}>{r.id}</Text>
-                      <Text style={styles.rowSubtitle}>
-                        {r.branchName} • {r.requestedBy} • {r.createdAtLabel}
-                      </Text>
-                    </View>
-                    <View style={styles.rowRight}>
-                      <View style={[styles.statusPill, { backgroundColor: tone.bg, borderColor: tone.border }]}
-                      >
-                        <Text style={[styles.statusPillText, { color: tone.text }]}>{STATUS_LABEL[r.status]}</Text>
-                      </View>
-                      <Text style={styles.rowAmount}>₱ {money(computeTotal(r))}</Text>
-                    </View>
-                  </View>
-
-                  <Text numberOfLines={1} style={styles.rowNote}>
-                    Supplier: {r.supplierName || '—'} • Items: {r.lines.length}
-                  </Text>
-                </Pressable>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
-
-      <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setSelected(null)}>
-          <Pressable style={styles.modalCard} onPress={() => undefined}>
-            <Text style={styles.modalTitle}>Request Details</Text>
-
-            <View style={styles.modalSection}>
-              <Text style={styles.modalLabel}>Request</Text>
-              <Text style={styles.modalValue}>{selected?.id}</Text>
-              <Text style={styles.modalHint}>{selected?.createdAtLabel}</Text>
-            </View>
-
-            <View style={styles.modalSectionRow}>
-              <View style={styles.modalHalf}>
-                <Text style={styles.modalLabel}>Branch</Text>
-                <Text style={styles.modalValue}>{selected?.branchName}</Text>
-              </View>
-              <View style={styles.modalHalf}>
-                <Text style={styles.modalLabel}>Status</Text>
-                <Text style={styles.modalValue}>{selected ? STATUS_LABEL[selected.status] : ''}</Text>
-              </View>
-            </View>
-
-            <View style={styles.modalSection}>
-              <Text style={styles.modalLabel}>Supplier</Text>
-              <Text style={styles.modalValue}>{selected?.supplierName || '—'}</Text>
-            </View>
-
-            <View style={styles.sectionDivider} />
-
-            <Text style={styles.subsectionTitle}>Items</Text>
-            <View style={styles.modalList}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {(selected?.lines ?? []).map((l) => (
-                  <View key={l.id} style={styles.lineRow}>
-                    <View style={styles.lineLeft}>
-                      <Text style={styles.lineTitle}>{l.itemName}</Text>
-                      <Text style={styles.lineSub}>{l.qty} {l.unit} • ₱ {money(l.unitCost)} / {l.unit}</Text>
-                    </View>
-                    <Text style={styles.lineAmount}>₱ {money(l.qty * l.unitCost)}</Text>
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.netRow}>
-              <Text style={styles.netLabel}>Estimated Total</Text>
-              <Text style={styles.netAmount}>₱ {money(selected ? computeTotal(selected) : 0)}</Text>
-            </View>
-
-            <Text style={styles.noteText}>{selected?.notes || ''}</Text>
-
-            <View style={styles.modalActions}>
-              <Pressable style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>Approve</Text>
-              </Pressable>
-              <Pressable style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>Receive</Text>
-              </Pressable>
-              <Pressable style={styles.primaryButton} onPress={() => setSelected(null)}>
-                <Text style={styles.primaryButtonText}>Close</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      </View>
     </SafeAreaView>
   );
 };
@@ -299,6 +108,51 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight:
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  comingSoonWrap: {
+    flex: 1,
+    padding: Spacing.lg,
+    justifyContent: 'center',
+  },
+  comingSoonCard: {
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    ...Shadows.md,
+  },
+  comingSoonIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.tint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  comingSoonIconText: {
+    fontSize: 30,
+    color: colors.buttonPrimaryText,
+  },
+  comingSoonTitle: {
+    ...Typography.h2,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  comingSoonSubtitle: {
+    ...Typography.body,
+    color: colors.tint,
+    fontWeight: '800',
+    marginTop: Spacing.xs,
+  },
+  comingSoonHint: {
+    ...Typography.caption,
+    color: colors.textSecondary,
+    marginTop: Spacing.md,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   content: {
     padding: Spacing.lg,
