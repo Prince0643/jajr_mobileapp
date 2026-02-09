@@ -223,6 +223,38 @@ const HomeScreen: React.FC = () => {
     }
   }, [loadBranches]);
 
+  const handleEmployeeMarkAbsent = useCallback(async (employee: Employee, branch: Branch) => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const res = await ApiService.markAttendanceAbsent({ employee_id: employee.id, branch_name: branch.branchName, date: today });
+      if (!res?.success) {
+        Alert.alert('Mark Absent Failed', res?.message || 'Failed to mark absent');
+        return;
+      }
+
+      setBranches((prev) =>
+        prev.map((b) => ({
+          ...b,
+          employees: (b.employees || []).map((e) =>
+            e.id === employee.id
+              ? {
+                  ...e,
+                  today_status: 'Absent',
+                  is_time_running: false,
+                  total_ot_hrs: '',
+                  is_overtime_running: 0 as any,
+                }
+              : e
+          ),
+        }))
+      );
+
+      await loadBranches();
+    } catch (e: any) {
+      Alert.alert('Mark Absent Failed', String(e?.message || e || 'Failed to mark absent'));
+    }
+  }, [loadBranches]);
+
   const handleEmployeeTimeIn = useCallback(async (employee: Employee, branch: Branch) => {
     if (branch.branchName === 'Pool') {
       Alert.alert('No Branch Assigned', 'Assign this employee to a branch before timing in.');
@@ -268,6 +300,7 @@ const HomeScreen: React.FC = () => {
           time_in: nowIso,
           time_out: null,
           is_time_running: true,
+          today_status: 'Present',
           isSynced: false,
           isDisabled: false,
         };
@@ -286,7 +319,15 @@ const HomeScreen: React.FC = () => {
         const finalBranches = optimisticBranches.map(b => ({
           ...b,
           employees: b.employees?.map(emp =>
-            emp.id === employee.id ? { ...emp, time_in: serverTimeIn, is_time_running: true, isSynced: true } : emp
+            emp.id === employee.id
+              ? {
+                  ...emp,
+                  time_in: serverTimeIn,
+                  is_time_running: true,
+                  today_status: 'Present',
+                  isSynced: true,
+                }
+              : emp
           ) || [],
         }));
         setBranches(finalBranches);
@@ -324,7 +365,9 @@ const HomeScreen: React.FC = () => {
     const optimisticBranches = branches.map(b => ({
       ...b,
       employees: b.employees?.map(emp =>
-        emp.id === employee.id ? { ...emp, time_out: nowIso, is_time_running: false, isSynced: false } : emp
+        emp.id === employee.id
+          ? { ...emp, time_out: nowIso, is_time_running: false, today_status: 'Present', isSynced: false }
+          : emp
       ) || [],
     }));
     setBranches(optimisticBranches);
@@ -346,7 +389,15 @@ const HomeScreen: React.FC = () => {
         const finalBranches = optimisticBranches.map(b => ({
           ...b,
           employees: b.employees?.map(emp => {
-            if (emp.id === employee.id) return { ...emp, time_out: serverTimeOut, is_time_running: false, isSynced: true };
+            if (emp.id === employee.id) {
+              return {
+                ...emp,
+                time_out: serverTimeOut,
+                is_time_running: false,
+                today_status: 'Present',
+                isSynced: true,
+              };
+            }
             return {
               ...emp,
               isDisabled: newMap.has(emp.id) && newMap.get(emp.id) !== b.branchName,
@@ -537,6 +588,7 @@ const HomeScreen: React.FC = () => {
           onEmployeeTransfer={handleEmployeeTransfer}
           onEmployeeLongPress={(employee) => handleEmployeeLongPress(employee)}
           onEmployeeSetOtHours={handleEmployeeSetOtHours}
+          onEmployeeMarkAbsent={handleEmployeeMarkAbsent}
           onRefresh={handleRefresh}
           isRefreshing={isRefreshing}
           style={styles.branchList}

@@ -19,6 +19,7 @@ interface BranchListItemProps {
   onEmployeeTransfer?: (employee: Employee, branch: Branch) => void;
   onEmployeeLongPress?: (employee: Employee, branch: Branch) => void;
   onEmployeeSetOtHours?: (employee: Employee, otHours: string) => Promise<void> | void;
+  onEmployeeMarkAbsent?: (employee: Employee, branch: Branch) => Promise<void> | void;
 }
 
 const BranchListItem: React.FC<BranchListItemProps> = ({
@@ -29,6 +30,7 @@ const BranchListItem: React.FC<BranchListItemProps> = ({
   onEmployeeTransfer,
   onEmployeeLongPress,
   onEmployeeSetOtHours,
+  onEmployeeMarkAbsent,
 }) => {
   const { resolvedTheme } = useThemeMode();
   const colors = Colors[resolvedTheme];
@@ -80,6 +82,7 @@ const BranchListItem: React.FC<BranchListItemProps> = ({
           onEmployeeTransfer={onEmployeeTransfer}
           onEmployeeLongPress={onEmployeeLongPress}
           onEmployeeSetOtHours={onEmployeeSetOtHours}
+          onEmployeeMarkAbsent={onEmployeeMarkAbsent}
         />
       )}
     </View>

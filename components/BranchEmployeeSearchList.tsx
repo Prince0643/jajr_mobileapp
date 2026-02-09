@@ -2,7 +2,7 @@ import { Colors } from '@/constants/theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { Branch, Employee } from '@/types';
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import EmployeeListItem from './EmployeeListItem';
 
 interface BranchEmployeeSearchListProps {
@@ -13,6 +13,7 @@ interface BranchEmployeeSearchListProps {
   onEmployeeTransfer?: (employee: Employee, branch: Branch) => void;
   onEmployeeLongPress?: (employee: Employee, branch: Branch) => void;
   onEmployeeSetOtHours?: (employee: Employee, otHours: string) => Promise<void> | void;
+  onEmployeeMarkAbsent?: (employee: Employee, branch: Branch) => Promise<void> | void;
 }
 
 const BranchEmployeeSearchList: React.FC<BranchEmployeeSearchListProps> = ({
@@ -23,6 +24,7 @@ const BranchEmployeeSearchList: React.FC<BranchEmployeeSearchListProps> = ({
   onEmployeeTransfer,
   onEmployeeLongPress,
   onEmployeeSetOtHours,
+  onEmployeeMarkAbsent,
 }) => {
   const { resolvedTheme } = useThemeMode();
   const colors = Colors[resolvedTheme];
@@ -30,19 +32,34 @@ const BranchEmployeeSearchList: React.FC<BranchEmployeeSearchListProps> = ({
   const styles = useMemo(() => createStyles(colors, borderLight), [borderLight, colors]);
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'present' | 'absent' | 'ot'>('all');
+  const [filterPickerOpen, setFilterPickerOpen] = useState(false);
 
   const hasOtForToday = (emp: Employee) => {
+    const overtimeRaw = (emp as any).is_overtime_running;
+    if (overtimeRaw === true || overtimeRaw === false) return overtimeRaw;
+    if (overtimeRaw === 1 || overtimeRaw === 0) return overtimeRaw === 1;
+    if (typeof overtimeRaw === 'string' && (overtimeRaw === '1' || overtimeRaw === '0')) return overtimeRaw === '1';
     const raw = String((emp as any).total_ot_hrs ?? '').trim();
     if (!raw) return false;
     const n = parseInt(raw, 10);
     return Number.isFinite(n) && n > 0;
   };
 
+  const hasTimeLogToday = (emp: Employee) => {
+    const timeIn = (emp as any).time_in ?? null;
+    const timeOut = (emp as any).time_out ?? null;
+    return Boolean(timeIn) || Boolean(timeOut);
+  };
+
+  const getStatusToday = (emp: Employee) => {
+    const raw = (emp as any).today_status;
+    return String(raw ?? '').trim();
+  };
+
   const filtered = useMemo(() => {
     const byAttendance = employees.filter((emp) => {
-      const isTimeRunning = !!emp.is_time_running;
-      if (filterMode === 'present') return isTimeRunning;
-      if (filterMode === 'absent') return !isTimeRunning && !hasOtForToday(emp);
+      if (filterMode === 'present') return getStatusToday(emp).toLowerCase() === 'present';
+      if (filterMode === 'absent') return getStatusToday(emp).toLowerCase() === 'absent';
       if (filterMode === 'ot') return hasOtForToday(emp);
       return true;
     });
@@ -54,38 +71,29 @@ const BranchEmployeeSearchList: React.FC<BranchEmployeeSearchListProps> = ({
     );
   }, [employees, filterMode, search]);
 
-  const presentCount = useMemo(() => employees.filter((e) => !!e.is_time_running).length, [employees]);
-  const absentCount = useMemo(() => employees.filter((e) => !e.is_time_running && !hasOtForToday(e)).length, [employees]);
+  const presentCount = useMemo(
+    () => employees.filter((e) => getStatusToday(e).toLowerCase() === 'present').length,
+    [employees]
+  );
+  const absentCount = useMemo(
+    () => employees.filter((e) => getStatusToday(e).toLowerCase() === 'absent').length,
+    [employees]
+  );
   const otCount = useMemo(() => employees.filter((e) => hasOtForToday(e)).length, [employees]);
+
+  const filterLabel = useMemo(() => {
+    if (filterMode === 'present') return `Present (${presentCount})`;
+    if (filterMode === 'absent') return `Absent (${absentCount})`;
+    if (filterMode === 'ot') return `OT (${otCount})`;
+    return `All (${employees.length})`;
+  }, [absentCount, employees.length, filterMode, otCount, presentCount]);
 
   return (
     <View>
-      <View style={styles.filterRow}>
-        <TouchableOpacity
-          style={[styles.filterPill, filterMode === 'all' ? styles.filterPillActive : undefined]}
-          onPress={() => setFilterMode('all')}
-        >
-          <Text style={[styles.filterText, filterMode === 'all' ? styles.filterTextActive : undefined]}>All ({employees.length})</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterPill, filterMode === 'present' ? styles.filterPillActive : undefined]}
-          onPress={() => setFilterMode('present')}
-        >
-          <Text style={[styles.filterText, filterMode === 'present' ? styles.filterTextActive : undefined]}>Present ({presentCount})</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterPill, filterMode === 'absent' ? styles.filterPillActive : undefined]}
-          onPress={() => setFilterMode('absent')}
-        >
-          <Text style={[styles.filterText, filterMode === 'absent' ? styles.filterTextActive : undefined]}>Absent ({absentCount})</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterPill, filterMode === 'ot' ? styles.filterPillActive : undefined]}
-          onPress={() => setFilterMode('ot')}
-        >
-          <Text style={[styles.filterText, filterMode === 'ot' ? styles.filterTextActive : undefined]}>OT ({otCount})</Text>
-        </TouchableOpacity>
-      </View>
+      <Pressable style={styles.filterDropdown} onPress={() => setFilterPickerOpen(true)}>
+        <Text style={styles.filterDropdownText}>{filterLabel}</Text>
+        <Text style={styles.filterDropdownChevron}>▼</Text>
+      </Pressable>
       <TextInput
         style={styles.searchInput}
         placeholder="Search employee name or code..."
@@ -95,6 +103,63 @@ const BranchEmployeeSearchList: React.FC<BranchEmployeeSearchListProps> = ({
         autoCorrect={false}
         autoCapitalize="none"
       />
+
+      <Modal
+        visible={filterPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFilterPickerOpen(false)}
+      >
+        <Pressable style={styles.pickerOverlay} onPress={() => setFilterPickerOpen(false)}>
+          <Pressable style={styles.pickerCard} onPress={() => undefined}>
+            <Pressable
+              style={[styles.pickerItem, filterMode === 'all' ? styles.pickerItemActive : undefined]}
+              onPress={() => {
+                setFilterMode('all');
+                setFilterPickerOpen(false);
+              }}
+            >
+              <Text style={[styles.pickerItemText, filterMode === 'all' ? styles.pickerItemTextActive : undefined]}>
+                All ({employees.length})
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.pickerItem, filterMode === 'present' ? styles.pickerItemActive : undefined]}
+              onPress={() => {
+                setFilterMode('present');
+                setFilterPickerOpen(false);
+              }}
+            >
+              <Text style={[styles.pickerItemText, filterMode === 'present' ? styles.pickerItemTextActive : undefined]}>
+                Present ({presentCount})
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.pickerItem, filterMode === 'absent' ? styles.pickerItemActive : undefined]}
+              onPress={() => {
+                setFilterMode('absent');
+                setFilterPickerOpen(false);
+              }}
+            >
+              <Text style={[styles.pickerItemText, filterMode === 'absent' ? styles.pickerItemTextActive : undefined]}>
+                Absent ({absentCount})
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.pickerItem, styles.pickerItemLast, filterMode === 'ot' ? styles.pickerItemActive : undefined]}
+              onPress={() => {
+                setFilterMode('ot');
+                setFilterPickerOpen(false);
+              }}
+            >
+              <Text style={[styles.pickerItemText, filterMode === 'ot' ? styles.pickerItemTextActive : undefined]}>
+                OT ({otCount})
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {filtered.length > 0 ? (
         filtered.map((employee, index) => (
           <EmployeeListItem
@@ -105,6 +170,7 @@ const BranchEmployeeSearchList: React.FC<BranchEmployeeSearchListProps> = ({
             onTransfer={undefined}
             onLongPress={onEmployeeLongPress ? () => onEmployeeLongPress(employee, branch) : undefined}
             onSetOtHours={onEmployeeSetOtHours ? (emp, hrs) => onEmployeeSetOtHours(emp, hrs) : undefined}
+            onMarkAbsent={onEmployeeMarkAbsent ? () => onEmployeeMarkAbsent(employee, branch) : undefined}
             isExpanded={branch.isExpanded}
           />
         ))
@@ -119,34 +185,65 @@ const BranchEmployeeSearchList: React.FC<BranchEmployeeSearchListProps> = ({
 
 const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight: string) =>
   StyleSheet.create({
-    filterRow: {
+    filterDropdown: {
       flexDirection: 'row',
-      gap: 8,
+      alignItems: 'center',
+      justifyContent: 'space-between',
       marginHorizontal: 10,
       marginTop: 10,
       marginBottom: 6,
-    },
-    filterPill: {
-      flex: 1,
       borderWidth: 1,
       borderColor: borderLight,
-      borderRadius: 999,
-      paddingVertical: 8,
-      paddingHorizontal: 10,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
       backgroundColor: colors.card,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
-    filterPillActive: {
-      borderColor: colors.tint,
-      backgroundColor: colors.tint,
-    },
-    filterText: {
+    filterDropdownText: {
       color: colors.text,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    filterDropdownChevron: {
+      color: colors.textSecondary,
       fontSize: 12,
+      marginLeft: 10,
+    },
+    pickerOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.35)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    pickerCard: {
+      width: '100%',
+      maxWidth: 320,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: borderLight,
+      overflow: 'hidden',
+    },
+    pickerItem: {
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: borderLight,
+    },
+    pickerItemLast: {
+      borderBottomWidth: 0,
+    },
+    pickerItemActive: {
+      backgroundColor: colors.tint,
+      borderBottomColor: colors.tint,
+    },
+    pickerItemText: {
+      color: colors.text,
+      fontSize: 14,
       fontWeight: '700',
     },
-    filterTextActive: {
+    pickerItemTextActive: {
       color: colors.buttonPrimaryText,
     },
     searchInput: {

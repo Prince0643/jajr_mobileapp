@@ -1,4 +1,5 @@
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
 import { ApiService } from '@/services/api';
 import { ErrorHandler, SessionManager } from '@/utils';
 import { useRouter } from 'expo-router';
@@ -19,7 +20,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
-  const colors = Colors.dark;
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
 
   const [isLoading, setIsLoading] = useState(false);
   const [employeeId, setEmployeeId] = useState<number | null>(null);

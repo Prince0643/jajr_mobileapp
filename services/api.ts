@@ -165,6 +165,25 @@ export class ApiService {
     return apiClient.postForm(url, payload as any);
   }
 
+  static async getAttendanceAbsentNotes(payload: {
+    employee_id: number;
+    date?: string;
+  }): Promise<{ success: boolean; absent_notes?: string; message?: string }> {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
+    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}get_attendance_absent_notes_api.php`;
+    return apiClient.postForm(url, payload as any);
+  }
+
+  static async markAttendanceAbsent(payload: {
+    employee_id: number;
+    branch_name?: string;
+    date?: string;
+  }): Promise<{ success: boolean; message?: string }> {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
+    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}mark_attendance_absent_api.php`;
+    return apiClient.postForm(url, payload as any);
+  }
+
   // Password Reset (if needed)
   static async resetPassword(email: string, newPassword: string): Promise<{ success: boolean; message: string }> {
     return apiClient.postForm<{ success: boolean; message: string }>('reset_password_api', {

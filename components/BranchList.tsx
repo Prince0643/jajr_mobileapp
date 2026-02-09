@@ -21,6 +21,7 @@ interface BranchListProps {
   onEmployeeTransfer?: (employee: Employee, branch: Branch) => void;
   onEmployeeLongPress?: (employee: Employee, branch: Branch) => void;
   onEmployeeSetOtHours?: (employee: Employee, otHours: string) => Promise<void> | void;
+  onEmployeeMarkAbsent?: (employee: Employee, branch: Branch) => Promise<void> | void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
   style?: ViewStyle;
@@ -34,6 +35,7 @@ const BranchList: React.FC<BranchListProps> = ({
   onEmployeeTransfer,
   onEmployeeLongPress,
   onEmployeeSetOtHours,
+  onEmployeeMarkAbsent,
   onRefresh,
   isRefreshing = false,
   style,
@@ -134,6 +136,7 @@ const BranchList: React.FC<BranchListProps> = ({
       onEmployeeTransfer={onEmployeeTransfer}
       onEmployeeLongPress={onEmployeeLongPress}
       onEmployeeSetOtHours={onEmployeeSetOtHours}
+      onEmployeeMarkAbsent={onEmployeeMarkAbsent}
     />
   );
 

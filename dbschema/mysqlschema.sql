@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Feb 06, 2026 at 02:31 AM
+-- Generation Time: Feb 06, 2026 at 07:36 AM
 -- Server version: 8.4.7
 -- PHP Version: 8.3.28
 
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `activity_logs` (
   KEY `idx_user_id` (`user_id`),
   KEY `idx_action` (`action`),
   KEY `idx_created_at` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=74 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `activity_logs`
@@ -59,7 +59,9 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `details`, `ip_address`,
 (68, 6, 'Logged In', 'User Super Adminesu logged in from branch: BCDA', '::1', '2026-02-05 02:29:25'),
 (69, 17, 'Logged In', 'User ROLLY BALTAZAR logged in from branch: BCDA', '::1', '2026-02-05 02:32:56'),
 (70, 17, 'Logged In', 'User ROLLY BALTAZAR logged in from branch: STO. Rosario', '::1', '2026-02-06 00:26:16'),
-(71, 6, 'Logged In', 'User Super Adminesu logged in from branch: STO. Rosario', '::1', '2026-02-06 01:00:23');
+(71, 6, 'Logged In', 'User Super Adminesu logged in from branch: STO. Rosario', '::1', '2026-02-06 01:00:23'),
+(72, 17, 'Logged In', 'User ROLLY BALTAZAR logged in from branch: Panicsican', '::1', '2026-02-06 02:48:29'),
+(73, 6, 'Logged In', 'User Super Adminesu logged in from branch: Main Branch', '::1', '2026-02-06 05:24:08');
 
 -- --------------------------------------------------------
 
@@ -71,7 +73,7 @@ DROP TABLE IF EXISTS `attendance`;
 CREATE TABLE IF NOT EXISTS `attendance` (
   `id` int NOT NULL AUTO_INCREMENT,
   `employee_id` int NOT NULL,
-  `status` enum('Present','Late','Absent','System') DEFAULT NULL,
+  `status` enum('Present','Late','Absent','System') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `branch_name` varchar(50) NOT NULL,
   `attendance_date` date NOT NULL,
   `time_in` datetime DEFAULT NULL,
@@ -85,20 +87,28 @@ CREATE TABLE IF NOT EXISTS `attendance` (
   `is_time_running` tinyint(1) NOT NULL,
   `total_ot_hrs` varchar(10) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=759 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=779 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `attendance`
 --
 
 INSERT INTO `attendance` (`id`, `employee_id`, `status`, `branch_name`, `attendance_date`, `time_in`, `time_out`, `created_at`, `updated_at`, `is_auto_absent`, `auto_absent_applied`, `absent_notes`, `is_overtime_running`, `is_time_running`, `total_ot_hrs`) VALUES
-(758, 15, NULL, 'BCDA - CCA', '2026-02-06', '2026-02-06 10:29:27', NULL, '2026-02-06 02:29:27', NULL, 0, 0, NULL, 0, 1, ''),
-(757, 14, NULL, 'BCDA - CCA', '2026-02-06', '2026-02-06 10:29:26', NULL, '2026-02-06 02:29:26', NULL, 0, 0, NULL, 0, 1, ''),
-(756, 60, NULL, 'Pias - Sundara', '2026-02-06', '2026-02-06 10:24:18', '2026-02-06 10:24:22', '2026-02-06 02:24:18', NULL, 0, 0, NULL, 0, 0, ''),
-(755, 63, NULL, 'Pias - Sundara', '2026-02-06', '2026-02-06 10:24:17', '2026-02-06 10:24:21', '2026-02-06 02:24:17', NULL, 0, 0, NULL, 0, 0, ''),
-(754, 64, NULL, 'Pias - Sundara', '2026-02-06', '2026-02-06 10:24:16', '2026-02-06 10:24:23', '2026-02-06 02:24:16', NULL, 0, 0, NULL, 0, 0, ''),
-(753, 62, NULL, 'Pias - Sundara', '2026-02-06', '2026-02-06 10:24:15', '2026-02-06 10:24:21', '2026-02-06 02:24:15', NULL, 0, 0, NULL, 0, 0, ''),
-(752, 61, NULL, 'Pias - Sundara', '2026-02-06', '2026-02-06 10:24:07', '2026-02-06 10:24:10', '2026-02-06 02:24:07', NULL, 0, 0, NULL, 0, 0, '');
+(773, 18, NULL, 'BCDA - CCA', '2026-02-06', '2026-02-06 12:59:32', '2026-02-06 12:59:49', '2026-02-06 04:59:32', NULL, 0, 0, NULL, 0, 0, ''),
+(772, 18, 'Absent', 'BCDA - CCA', '2026-02-06', '2026-02-06 12:59:01', '2026-02-06 12:59:03', '2026-02-06 04:56:16', NULL, 0, 0, 'Napan tinmakki', 0, 0, ''),
+(771, 14, NULL, 'BCDA - Admin', '2026-02-06', '2026-02-06 11:51:05', '2026-02-06 12:59:47', '2026-02-06 03:51:05', '2026-02-06 05:15:47', 0, 0, NULL, 0, 0, ''),
+(770, 19, NULL, 'BCDA - Fence', '2026-02-06', '2026-02-06 11:50:53', '2026-02-06 11:50:58', '2026-02-06 03:50:53', '2026-02-06 03:51:04', 0, 0, NULL, 0, 0, ''),
+(769, 14, NULL, 'BCDA - Admin', '2026-02-06', '2026-02-06 11:50:52', '2026-02-06 11:50:59', '2026-02-06 03:50:52', NULL, 0, 0, NULL, 0, 0, ''),
+(768, 19, NULL, 'BCDA - Admin', '2026-02-06', '2026-02-06 11:50:39', '2026-02-06 11:50:46', '2026-02-06 03:50:39', NULL, 0, 0, NULL, 0, 0, ''),
+(767, 17, NULL, 'BCDA - Admin', '2026-02-06', '2026-02-06 11:49:55', NULL, '2026-02-06 03:49:55', '2026-02-06 03:51:15', 0, 0, NULL, 0, 1, ''),
+(766, 16, NULL, 'BCDA - CCA', '2026-02-06', '2026-02-06 11:49:50', NULL, '2026-02-06 03:49:50', '2026-02-06 05:19:36', 0, 0, NULL, 0, 1, '6'),
+(765, 15, NULL, 'BCDA - Control Tower', '2026-02-06', '2026-02-06 11:47:26', '2026-02-06 11:47:30', '2026-02-06 03:47:26', '2026-02-06 03:47:40', 0, 0, NULL, 0, 0, ''),
+(764, 14, NULL, 'BCDA - Admin', '2026-02-06', '2026-02-06 11:47:07', '2026-02-06 11:47:29', '2026-02-06 03:47:07', '2026-02-06 03:47:48', 0, 0, NULL, 0, 0, ''),
+(774, 6, 'Present', 'Main Branch', '2026-02-06', NULL, NULL, '2026-02-06 05:24:08', NULL, 0, 0, NULL, 0, 0, ''),
+(775, 61, NULL, 'Pias - Sundara', '2026-02-06', '2026-02-06 13:44:02', NULL, '2026-02-06 05:44:02', NULL, 0, 0, NULL, 0, 1, ''),
+(776, 62, NULL, 'Pias - Sundara', '2026-02-06', '2026-02-06 14:01:48', '2026-02-06 14:21:10', '2026-02-06 06:01:48', NULL, 0, 0, NULL, 0, 0, ''),
+(777, 64, 'Absent', 'Pias - Sundara', '2026-02-06', NULL, NULL, '2026-02-06 06:14:00', NULL, 0, 0, 'asdf', 0, 0, ''),
+(778, 63, NULL, 'Pias - Sundara', '2026-02-06', '2026-02-06 14:21:06', NULL, '2026-02-06 06:21:06', NULL, 0, 0, NULL, 0, 1, '0');
 
 -- --------------------------------------------------------
 
@@ -151,7 +161,7 @@ CREATE TABLE IF NOT EXISTS `branch_reset_log` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `reset_date` (`reset_date`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -170,7 +180,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
   `upload_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_employee_doc_type` (`employee_id`,`document_type`)
-) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `documents`
@@ -209,79 +219,78 @@ CREATE TABLE IF NOT EXISTS `employees` (
   UNIQUE KEY `employee_code` (`employee_code`),
   UNIQUE KEY `email` (`email`),
   KEY `fk_employees_branch` (`branch_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=113 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=121 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `employees`
 --
 
 INSERT INTO `employees` (`id`, `employee_code`, `first_name`, `middle_name`, `last_name`, `email`, `password_hash`, `position`, `status`, `created_at`, `updated_at`, `profile_image`, `daily_rate`, `branch_id`) VALUES
-(16, 'E0006', 'ALFREDO', NULL, 'BAGUIO', 'alfredo.baguio@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 550.00, 20),
-(17, 'E0007', 'ROLLY', NULL, 'BALTAZAR', 'rolly.baltazar@example.com', '$2y$10$4/nX3PsxAeYnik1fwh7lxO3XJHlW.IiOjK5NZPDCDD9eXoCBMVp8K', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 500.00, 20),
-(18, 'E0008', 'DONG', NULL, 'BAUTISTA', 'dong.bautista@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 20),
-(14, 'E0004', 'NOEL', NULL, 'ARIZ', 'noel.ariz@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:13:14', NULL, 550.00, 20),
+(16, 'E0006', 'ALFREDO', NULL, 'BAGUIO', 'alfredo.baguio@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 550.00, 20),
+(17, 'E0007', 'ROLLY', NULL, 'BALTAZAR', 'rolly.baltazar@example.com', '$2y$10$4/nX3PsxAeYnik1fwh7lxO3XJHlW.IiOjK5NZPDCDD9eXoCBMVp8K', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 500.00, 21),
+(18, 'E0008', 'DONG', NULL, 'BAUTISTA', 'dong.bautista@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 20),
+(14, 'E0004', 'NOEL', NULL, 'ARIZ', 'noel.ariz@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 550.00, 21),
 (6, 'SA001', 'Super', 'Duper', 'Adminesu', 'admin@jajrconstruction.com', '$2y$10$RSHOb3hskFZueMLlCycFuua/4EwcxGmAIzpcl8ixQpEXY3tfu9LYi', 'Super Admin', 'Active', '2026-01-16 02:26:58', '2026-02-06 01:17:06', 'profile_697d9f9a1f47a8.96968556.png', 600.00, 31),
-(15, 'E0005', 'DANIEL', NULL, 'BACHILLER', 'daniel.bachiller@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 20),
-(11, 'E0001', 'AARIZ', NULL, 'MARLOU', 'aariz.marlou@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 31),
-(12, 'E0002', 'CESAR', NULL, 'ABUBO', 'cesar.abubo@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', 'profile_697d962d450256.84780797.png', 600.00, 31),
-(13, 'E0003', 'MARLON', NULL, 'AGUILAR', 'marlon.aguilar@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 31),
-(19, 'E0009', 'JANLY', NULL, 'BELINO', 'janly.belino@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 20),
-(20, 'E0010', 'MENUEL', NULL, 'BENITEZ', 'menuel.benitez@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 22),
-(21, 'E0011', 'GELMAR', NULL, 'BERNACHEA', 'gelmar.bernachea@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:13:14', NULL, 600.00, 22),
-(22, 'E0012', 'JOMAR', NULL, 'CABANBAN', 'jomar.cabanban@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 22),
-(23, 'E0013', 'MARIO', NULL, 'CABANBAN', 'mario.cabanban@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 22),
-(24, 'E0014', 'KELVIN', NULL, 'CALDERON', 'kelvin.calderon@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 500.00, 22),
-(25, 'E0015', 'FLORANTE', NULL, 'CALUZA', 'florante.caluza@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 22),
-(26, 'E0016', 'MELVIN', NULL, 'CAMPOS', 'melvin.campos@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 23),
-(27, 'E0017', 'JERWIN', NULL, 'CAMPOS', 'jerwin.campos@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 23),
-(28, 'E0018', 'BENJIE', NULL, 'CARAS', 'benjie.caras@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:13:14', NULL, 700.00, 23),
-(29, 'E0019', 'BONJO', NULL, 'DACUMOS', 'bonjo.dacumos@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 23),
-(30, 'E0020', 'RYAN', NULL, 'DEOCARIS', 'ryan.deocaris@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 500.00, 23),
-(31, 'E0021', 'BEN', NULL, 'ESTEPA', 'ben.estepa@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 23),
-(32, 'E0022', 'MAR DAVE', NULL, 'FLORES', 'mardave.flores@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 550.00, 24),
-(33, 'E0023', 'ALBERT', NULL, 'FONTANILLA', 'albert.fontanilla@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 24),
-(34, 'E0024', 'JOHN WILSON', NULL, 'FONTANILLA', 'johnwilson.fontanilla@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 24),
-(35, 'E0025', 'LEO', NULL, 'GURTIZA', 'leo.gurtiza@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:13:14', NULL, 600.00, 24),
-(36, 'E0026', 'JOSE', NULL, 'IGLECIAS', 'jose.iglecias@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 500.00, 24),
-(37, 'E0027', 'JEFFREY', NULL, 'JIMENEZ', 'jeffrey.jimenez@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 550.00, 24),
-(38, 'E0028', 'WILSON', NULL, 'LICTAOA', 'wilson.lictaoa@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 500.00, 25),
-(39, 'E0029', 'LORETO', NULL, 'MABALO', 'loreto.mabalo@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 25),
-(40, 'E0030', 'ROMEL', NULL, 'MALLARE', 'romel.mallare@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 25),
-(41, 'E0031', 'SAMUEL SR.', NULL, 'MARQUEZ', 'samuel.marquez@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 500.00, 25),
-(42, 'E0032', 'ROLLY', NULL, 'MARZAN', 'rolly.marzan@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:13:14', NULL, 600.00, 25),
-(43, 'E0033', 'RONALD', NULL, 'MARZAN', 'ronald.marzan@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 25),
-(44, 'E0034', 'WILSON', NULL, 'MARZAN', 'wilson.marzan@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 10),
-(45, 'E0035', 'MARVIN', NULL, 'MIRANDA', 'marvin.miranda@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 10),
-(46, 'E0036', 'JOE', NULL, 'MONTERDE', 'joe.monterde@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 700.00, 10),
-(47, 'E0037', 'ALDRED', NULL, 'NATARTE', 'aldred.natarte@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 10),
-(48, 'E0038', 'ARNOLD', NULL, 'NERIDO', 'arnold.nerido@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 10),
-(49, 'E0039', 'RONEL', NULL, 'NOSES', 'ronel.noses@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 10),
-(50, 'E0040', 'DANNY', NULL, 'PADILLA', 'danny.padilla@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 500.00, 26),
-(51, 'E0041', 'EDGAR', NULL, 'PANEDA', 'edgar.paneda@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 550.00, 26),
-(52, 'E0042', 'JEREMY', NULL, 'PIMENTEL', 'jeremy.pimentel@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 550.00, 26),
-(53, 'E0043', 'MIGUEL', NULL, 'PREPOSI', 'miguel.preposi@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 26),
-(54, 'E0044', 'JUN', NULL, 'ROAQUIN', 'jun.roaquin@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 26),
-(55, 'E0045', 'RICKMAR', NULL, 'SANTOS', 'rickmar.santos@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 27),
-(56, 'E0046', 'RIO', NULL, 'SILOY', 'rio.siloy@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 27),
-(57, 'E0047', 'NORMAN', NULL, 'TARAPE', 'norman.tarape@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 27),
-(58, 'E0048', 'HILMAR', NULL, 'TATUNAY', 'hilmar.tatunay@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 27),
-(59, 'E0049', 'KENNETH JOHN', NULL, 'UGAS', 'kennethjohn.ugas@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 27),
-(60, 'E0050', 'CLYDE JUSTINE', NULL, 'VASADRE', 'clydejustine.vasadre@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 500.00, 28),
-(61, 'E0051', 'CARL JHUNELL', NULL, 'ACAS', 'carljhunell.acas@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', 'profile_697d9f9350dad3.88439854.png', 600.00, 28),
-(62, 'E0052', 'ELAINE MARICRIS T.', NULL, 'AGUILAR', 'elainemaricris.aguilar@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', 'profile_697c5e5a1459b9.21959357.png', 600.00, 28),
-(63, 'E0053', 'JOYLENE F.', NULL, 'BALANON', 'joylene.balanon@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 28),
-(64, 'E0054', 'AVERIE L.', NULL, 'CABUSORA', 'averie.cabusora@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 28),
-(65, 'E0055', 'JOHN JULIUS', NULL, 'ECHAGUE', 'johnjulius.echague@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 29),
-(66, 'E0056', 'JOHN KENEDY', NULL, 'LUCAS', 'johnkenedy.lucas@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 29),
-(67, 'E0057', 'RONALYN', NULL, 'MALLARE', 'ronalyn.mallare@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 29),
-(68, 'ENG - 2026 - 0001', 'MICHELLE F.', NULL, 'NORIAL', 'michelle.norial@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 29),
-(69, 'E0059', 'WINNIELYN KAYE M.', NULL, 'OLARTE', 'winnielynkaye.olarte@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:15:26', NULL, 600.00, 29),
-(70, 'E0060', 'FLORIAN JANE', NULL, 'PERALTA', 'florianjane.peralta@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 30),
-(71, 'E0061', 'DANIEL', NULL, 'RILLERA', 'daniel.rillera@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 30),
-(72, 'E0062', 'JUNELL', NULL, 'TADINA', 'junell.tadina@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Employee', 'Active', '2026-01-22 07:58:04', '2026-02-06 01:17:06', NULL, 600.00, 30),
-(73, 'e10001', 'Marc', 'Espanto', 'Arzadon', 'you@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', 'Employee', 'Active', '2026-01-27 03:08:02', '2026-02-06 01:17:06', NULL, 600.00, 30),
+(15, 'E0005', 'DANIEL', NULL, 'BACHILLER', 'daniel.bachiller@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 22),
+(11, 'E0001', 'AARIZ', NULL, 'MARLOU', 'aariz.marlou@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 31),
+(12, 'E0002', 'CESAR', NULL, 'ABUBO', 'cesar.abubo@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', 'profile_697d962d450256.84780797.png', 600.00, 21),
+(13, 'E0003', 'MARLON', NULL, 'AGUILAR', 'marlon.aguilar@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 31),
+(19, 'E0009', 'JANLY', NULL, 'BELINO', 'janly.belino@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 23),
+(20, 'E0010', 'MENUEL', NULL, 'BENITEZ', 'menuel.benitez@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 22),
+(21, 'E0011', 'GELMAR', NULL, 'BERNACHEA', 'gelmar.bernachea@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 22),
+(22, 'E0012', 'JOMAR', NULL, 'CABANBAN', 'jomar.cabanban@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 22),
+(23, 'E0013', 'MARIO', NULL, 'CABANBAN', 'mario.cabanban@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 22),
+(24, 'E0014', 'KELVIN', NULL, 'CALDERON', 'kelvin.calderon@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 500.00, 22),
+(25, 'E0015', 'FLORANTE', NULL, 'CALUZA', 'florante.caluza@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 22),
+(26, 'E0016', 'MELVIN', NULL, 'CAMPOS', 'melvin.campos@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 23),
+(27, 'E0017', 'JERWIN', NULL, 'CAMPOS', 'jerwin.campos@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 23),
+(28, 'E0018', 'BENJIE', NULL, 'CARAS', 'benjie.caras@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 700.00, 23),
+(29, 'E0019', 'BONJO', NULL, 'DACUMOS', 'bonjo.dacumos@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 23),
+(30, 'E0020', 'RYAN', NULL, 'DEOCARIS', 'ryan.deocaris@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 500.00, 23),
+(31, 'E0021', 'BEN', NULL, 'ESTEPA', 'ben.estepa@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 23),
+(32, 'E0022', 'MAR DAVE', NULL, 'FLORES', 'mardave.flores@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 550.00, 21),
+(33, 'E0023', 'ALBERT', NULL, 'FONTANILLA', 'albert.fontanilla@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 24),
+(34, 'E0024', 'JOHN WILSON', NULL, 'FONTANILLA', 'johnwilson.fontanilla@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 24),
+(35, 'E0025', 'LEO', NULL, 'GURTIZA', 'leo.gurtiza@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 24),
+(36, 'E0026', 'JOSE', NULL, 'IGLECIAS', 'jose.iglecias@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 500.00, 24),
+(37, 'E0027', 'JEFFREY', NULL, 'JIMENEZ', 'jeffrey.jimenez@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 550.00, 24),
+(38, 'E0028', 'WILSON', NULL, 'LICTAOA', 'wilson.lictaoa@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 500.00, 25),
+(39, 'E0029', 'LORETO', NULL, 'MABALO', 'loreto.mabalo@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 25),
+(40, 'E0030', 'ROMEL', NULL, 'MALLARE', 'romel.mallare@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 25),
+(41, 'E0031', 'SAMUEL SR.', NULL, 'MARQUEZ', 'samuel.marquez@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 500.00, 25),
+(42, 'E0032', 'ROLLY', NULL, 'MARZAN', 'rolly.marzan@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 25),
+(43, 'E0033', 'RONALD', NULL, 'MARZAN', 'ronald.marzan@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 25),
+(44, 'E0034', 'WILSON', NULL, 'MARZAN', 'wilson.marzan@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 10),
+(45, 'E0035', 'MARVIN', NULL, 'MIRANDA', 'marvin.miranda@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 10),
+(46, 'E0036', 'JOE', NULL, 'MONTERDE', 'joe.monterde@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 700.00, 10),
+(47, 'E0037', 'ALDRED', NULL, 'NATARTE', 'aldred.natarte@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 10),
+(48, 'E0038', 'ARNOLD', NULL, 'NERIDO', 'arnold.nerido@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 10),
+(49, 'E0039', 'RONEL', NULL, 'NOSES', 'ronel.noses@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 10),
+(50, 'E0040', 'DANNY', NULL, 'PADILLA', 'danny.padilla@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 500.00, 26),
+(51, 'E0041', 'EDGAR', NULL, 'PANEDA', 'edgar.paneda@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 550.00, 26),
+(52, 'E0042', 'JEREMY', NULL, 'PIMENTEL', 'jeremy.pimentel@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 550.00, 26),
+(53, 'E0043', 'MIGUEL', NULL, 'PREPOSI', 'miguel.preposi@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 26),
+(54, 'E0044', 'JUN', NULL, 'ROAQUIN', 'jun.roaquin@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 26),
+(55, 'E0045', 'RICKMAR', NULL, 'SANTOS', 'rickmar.santos@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 27),
+(56, 'E0046', 'RIO', NULL, 'SILOY', 'rio.siloy@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 27),
+(57, 'E0047', 'NORMAN', NULL, 'TARAPE', 'norman.tarape@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 27),
+(58, 'E0048', 'HILMAR', NULL, 'TATUNAY', 'hilmar.tatunay@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 27),
+(59, 'E0049', 'KENNETH JOHN', NULL, 'UGAS', 'kennethjohn.ugas@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 27),
+(60, 'E0050', 'CLYDE JUSTINE', NULL, 'VASADRE', 'clydejustine.vasadre@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 500.00, 28),
+(61, 'E0051', 'CARL JHUNELL', NULL, 'ACAS', 'carljhunell.acas@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', 'profile_697d9f9350dad3.88439854.png', 600.00, 28),
+(63, 'ENG - 2026 - 0005', 'JOYLENE F.', NULL, 'BALANON', 'joylene.balanon@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Engineer', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:26:45', NULL, 600.00, 28),
+(67, 'E0057', 'RONALYN', NULL, 'MALLARE', 'ronalyn.mallare@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Worker', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:01:04', NULL, 600.00, 29),
+(68, 'ENG - 2026 - 0001', 'MICHELLE F.', NULL, 'NORIAL', 'michelle.norial@example.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Engineer', 'Active', '2026-01-22 07:58:04', '2026-02-06 07:27:26', NULL, 600.00, 29),
+(120, 'SA - 2026 - 004', 'Marc', '', 'Arzadon', 'arzadon@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Super Admin', 'Active', '2026-02-06 07:18:15', '2026-02-06 07:18:15', NULL, 600.00, NULL),
 (111, 'Supere', 'Admin', 'Admin', 'Admin', 'super@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Super Admin', 'Active', '0000-00-00 00:00:00', '2026-02-06 01:17:06', '', 0.00, 30),
-(112, 'SUPER001', 'Super', 'Admin', 'Account', 'superadmin@example.com', '$2y$10$Pci.6CbsQnCcVA.OxTJSs.Trzw0lFxGNFsLEDYY3hPtKbkOUxYLuC', 'Super Adminn', 'Active', '2026-02-03 07:49:06', '2026-02-06 01:17:06', NULL, 0.00, 31);
+(112, 'SUPER001', 'Super', 'Admin', 'Account', 'superadmin@example.com', '$2y$10$Pci.6CbsQnCcVA.OxTJSs.Trzw0lFxGNFsLEDYY3hPtKbkOUxYLuC', 'Super Adminn', 'Active', '2026-02-03 07:49:06', '2026-02-06 01:17:06', NULL, 0.00, 31),
+(115, 'ENG - 2026 - 0004', 'Junell', '', 'Tadina', 'tadina@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Engineer', 'Active', '2026-02-06 07:12:32', '2026-02-06 07:12:32', NULL, 600.00, NULL),
+(114, 'ENG - 2026 - 0003', 'Julius John', '', 'Echague', 'echague@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Engineer', 'Active', '2026-02-06 07:12:00', '2026-02-06 07:12:00', NULL, 600.00, NULL),
+(113, 'ENG - 2026 - 0002', 'John Kennedy', '', 'Lucas', 'lucas@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Engineer', 'Active', '2026-02-06 07:11:15', '2026-02-06 07:11:15', NULL, 600.00, NULL),
+(116, 'ENG - 2026 - 0006', 'Winnielyn Kaye', '', 'Olarte', 'olarte@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Engineer', 'Active', '2026-02-06 07:14:59', '2026-02-06 07:14:59', NULL, 600.00, NULL),
+(117, 'ADMIN - 2026 - 0001', 'ELAINE', 'Torres', 'Aguilar', 'aguilar@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Admin', 'Active', '2026-02-06 07:15:51', '2026-02-06 07:15:51', NULL, 600.00, NULL),
+(118, 'SA - 2026 - 002', 'Jason', 'Larkin', 'Wong', 'wong@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Super Admin', 'Active', '2026-02-06 07:16:34', '2026-02-06 07:16:34', NULL, 600.00, NULL),
+(119, 'SA - 2026 - 003', 'Lee Aldrich', '', 'Rimando', 'rimando@gmail.com', '9f0c3c0c2aef2cfafc8e5ed4b1fed480', 'Super Admin', 'Active', '2026-02-06 07:17:12', '2026-02-06 07:17:12', NULL, 600.00, NULL);
 
 -- --------------------------------------------------------
 
@@ -303,7 +312,7 @@ CREATE TABLE IF NOT EXISTS `employee_transfers` (
   KEY `idx_employee_id` (`employee_id`),
   KEY `idx_transfer_date` (`transfer_date`),
   KEY `idx_status` (`status`)
-) ENGINE=MyISAM AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `employee_transfers`
@@ -323,7 +332,17 @@ INSERT INTO `employee_transfers` (`id`, `employee_id`, `from_branch`, `to_branch
 (11, 12, 'Testing', 'Sto. Rosario', '2026-02-05 13:25:00', 'completed', '2026-02-05 05:25:00', '2026-02-05 05:25:00'),
 (12, 12, 'Sto. Rosario', 'Testing', '2026-02-05 15:12:58', 'completed', '2026-02-05 07:12:58', '2026-02-05 07:12:58'),
 (13, 12, 'Testing', 'Sto. Rosario', '2026-02-05 15:13:16', 'completed', '2026-02-05 07:13:16', '2026-02-05 07:13:16'),
-(14, 12, 'Sto. Rosario', 'Testing', '2026-02-05 15:13:44', 'completed', '2026-02-05 07:13:44', '2026-02-05 07:13:44');
+(14, 12, 'Sto. Rosario', 'Testing', '2026-02-05 15:13:44', 'completed', '2026-02-05 07:13:44', '2026-02-05 07:13:44'),
+(15, 15, 'BCDA - CCA', 'BCDA - Control Tower', '2026-02-06 11:47:40', 'completed', '2026-02-06 03:47:40', '2026-02-06 03:47:40'),
+(16, 14, 'BCDA - CCA', 'BCDA - Admin', '2026-02-06 11:47:48', 'completed', '2026-02-06 03:47:48', '2026-02-06 03:47:48'),
+(17, 18, 'BCDA - CCA', 'BCDA - Admin', '2026-02-06 11:50:19', 'completed', '2026-02-06 03:50:19', '2026-02-06 03:50:19'),
+(18, 19, 'BCDA - CCA', 'BCDA - Admin', '2026-02-06 11:50:33', 'completed', '2026-02-06 03:50:33', '2026-02-06 03:50:33'),
+(19, 19, 'BCDA - Admin', 'BCDA - Fence', '2026-02-06 11:51:04', 'completed', '2026-02-06 03:51:04', '2026-02-06 03:51:04'),
+(20, 14, 'BCDA - Admin', 'BCDA - CCA', '2026-02-06 11:51:08', 'completed', '2026-02-06 03:51:08', '2026-02-06 03:51:08'),
+(21, 17, 'BCDA - CCA', 'BCDA - Admin', '2026-02-06 11:51:15', 'completed', '2026-02-06 03:51:15', '2026-02-06 03:51:15'),
+(22, 14, 'BCDA - CCA', 'BCDA - Admin', '2026-02-06 13:15:47', 'completed', '2026-02-06 05:15:47', '2026-02-06 05:15:47'),
+(23, 32, 'BCDA - Fire Station', 'BCDA - Admin', '2026-02-06 13:39:52', 'completed', '2026-02-06 05:39:52', '2026-02-06 05:39:52'),
+(24, 12, 'Capitol - Accounting', 'BCDA - Admin', '2026-02-06 13:40:01', 'completed', '2026-02-06 05:40:01', '2026-02-06 05:40:01');
 
 -- --------------------------------------------------------
 
@@ -370,7 +389,7 @@ CREATE TABLE IF NOT EXISTS `performance_adjustments` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_employee_date` (`employee_id`,`adjustment_date`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 

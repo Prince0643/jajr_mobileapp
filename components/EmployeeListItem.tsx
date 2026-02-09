@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
+import { ApiService } from '@/services/api';
 import { Employee } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -22,6 +23,7 @@ interface EmployeeListItemProps {
   onTransfer?: () => void;
   onLongPress?: () => void;
   onSetOtHours?: (employee: Employee, otHours: string) => Promise<void> | void;
+  onMarkAbsent?: () => Promise<void> | void;
   isExpanded?: boolean;
 }
 
@@ -32,6 +34,7 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
   onTransfer,
   onLongPress,
   onSetOtHours,
+  onMarkAbsent,
   isExpanded = false,
 }) => {
   const { resolvedTheme } = useThemeMode();
@@ -42,11 +45,26 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
   const [otSaving, setOtSaving] = useState(false);
   const [notesModalVisible, setNotesModalVisible] = useState(false);
   const [notes, setNotes] = useState('');
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [notesError, setNotesError] = useState('');
 
-  const hasOt = !!String(employee.total_ot_hrs ?? '').trim();
+  const overtimeRaw = (employee as any).is_overtime_running;
+  const hasOt =
+    overtimeRaw === true || overtimeRaw === false
+      ? overtimeRaw
+      : overtimeRaw === 1 || overtimeRaw === 0
+        ? overtimeRaw === 1
+        : typeof overtimeRaw === 'string' && (overtimeRaw === '1' || overtimeRaw === '0')
+          ? overtimeRaw === '1'
+          : !!String((employee as any).total_ot_hrs ?? '').trim();
+
+  const hasTimeLogToday = Boolean((employee as any).time_in) || Boolean((employee as any).time_out);
 
   const isTimeRunning =
     (employee.is_time_running === true || (!!employee.time_in && !employee.time_out)) && !employee.time_out;
+
+  const statusRaw = (employee as any).today_status;
+  const statusLower = String(statusRaw ?? '').trim().toLowerCase();
 
   const handlePress = () => {
     if (employee.isDisabled) return;
@@ -62,6 +80,8 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
 
   const getStatusColor = () => {
     if (hasOt) return '#8E44AD';
+    if (statusLower === 'absent') return '#FF3B30';
+    if (statusLower === 'present') return '#34C759';
     if (employee.time_in && employee.time_out) return '#34C759';
     if (isTimeRunning) return '#FF9500';
     if (employee.isDisabled) return colors.textDisabled || '#9E9E9E';
@@ -78,7 +98,9 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
 
   const getStatusText = () => {
     if (hasOt) return 'OT';
-    if (employee.time_in && employee.time_out) return 'TIME IN';
+    if (statusLower === 'absent') return 'ABSENT';
+    if (statusLower === 'present') return 'PRESENT';
+    if (employee.time_in && employee.time_out) return 'PRESENT';
     if (isTimeRunning) return 'PRESENT';
     if (employee.isDisabled) return 'MARKED ELSEWHERE';
     return 'TIME IN';
@@ -93,16 +115,48 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
     }
   };
 
+  const handleMarkAbsent = async () => {
+    closeMenu();
+    if (typeof onMarkAbsent !== 'function') return;
+    try {
+      await onMarkAbsent();
+    } catch (e: any) {
+      Alert.alert('Mark Absent Failed', String(e?.message || e || 'Failed to mark absent'));
+    }
+  };
+
   const handleSetAsOt = () => {
     closeMenu();
+    if (!hasTimeLogToday) {
+      Alert.alert('Cannot set OT', 'Employee must have time logs for today before setting OT.');
+      return;
+    }
     setOtHours('');
     setOtModalVisible(true);
   };
 
   const handleNotes = () => {
     closeMenu();
+    setNotesError('');
+    setNotesLoading(true);
     setNotes('');
     setNotesModalVisible(true);
+
+    (async () => {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const res = await ApiService.getAttendanceAbsentNotes({ employee_id: employee.id, date: today });
+        if (!res?.success) {
+          setNotesError(res?.message || 'Failed to load notes');
+          return;
+        }
+        setNotes(String((res as any)?.absent_notes ?? ''));
+      } catch (e: any) {
+        setNotesError(String(e?.message || e || 'Failed to load notes'));
+      } finally {
+        setNotesLoading(false);
+      }
+    })();
   };
 
   const handleCopyOt = async () => {
@@ -119,6 +173,10 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
 
   const handlePasteOt = async () => {
     closeMenu();
+    if (!hasTimeLogToday) {
+      Alert.alert('Cannot set OT', 'Employee must have time logs for today before setting OT.');
+      return;
+    }
     try {
       const text = await Clipboard.getStringAsync();
       const digitsOnly = String(text ?? '').replace(/[^0-9]/g, '');
@@ -159,6 +217,8 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
   const handleCloseNotesModal = () => {
     setNotesModalVisible(false);
     setNotes('');
+    setNotesError('');
+    setNotesLoading(false);
   };
 
   const handleOtHoursChange = (value: string) => {
@@ -220,6 +280,9 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
           <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <TouchableOpacity style={styles.menuItem} onPress={handleViewTimeLogs}>
               <Text style={[styles.menuItemText, { color: colors.text }]}>View Time Logs</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={handleMarkAbsent} disabled={typeof onMarkAbsent !== 'function'}>
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Mark as Absent</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={handleSetAsOt}>
               <Text style={[styles.menuItemText, { color: colors.text }]}>Set as OT</Text>
@@ -292,14 +355,20 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
         <Pressable style={styles.menuOverlay} onPress={handleCloseNotesModal}>
           <Pressable style={[styles.otCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => {}}>
             <Text style={[styles.otTitle, { color: colors.text }]}>Notes</Text>
-            <Text style={[styles.otSub, { color: colors.textSecondary || colors.icon }]}>Add notes for this attendance (UI only)</Text>
+            <Text style={[styles.otSub, { color: colors.textSecondary || colors.icon }]}>Notes from database</Text>
+
+            {notesLoading ? (
+              <Text style={[styles.otSub, { color: colors.textSecondary || colors.icon }]}>Loading…</Text>
+            ) : !!notesError ? (
+              <Text style={[styles.otSub, { color: '#FF3B30' }]}>{notesError}</Text>
+            ) : null}
 
             <TextInput
               value={notes}
-              onChangeText={setNotes}
+              editable={false}
               multiline
               numberOfLines={4}
-              placeholder="Type notes..."
+              placeholder="No notes"
               placeholderTextColor={colors.textSecondary || colors.icon}
               style={[styles.notesInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface || colors.background }]}
               textAlignVertical="top"
@@ -310,17 +379,7 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
                 style={[styles.otBtn, { backgroundColor: colors.surface || colors.background, borderColor: colors.border }]}
                 onPress={handleCloseNotesModal}
               >
-                <Text style={[styles.otBtnText, { color: colors.text }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.otBtn,
-                  { backgroundColor: colors.tint, borderColor: colors.tint, opacity: notes.trim() ? 1 : 0.5 },
-                ]}
-                onPress={handleCloseNotesModal}
-                disabled={!notes.trim()}
-              >
-                <Text style={[styles.otBtnText, { color: colors.buttonPrimaryText || '#000' }]}>Save</Text>
+                <Text style={[styles.otBtnText, { color: colors.text }]}>Close</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
