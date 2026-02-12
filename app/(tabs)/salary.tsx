@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type PayPeriodType = 'daily' | 'weekly' | 'monthly';
+type PayPeriodType = 'weekly' | 'monthly';
+
+type WeekNumber = 1 | 2 | 3 | 4;
 
 type EmployeeOption = {
   id: number;
@@ -41,7 +43,6 @@ type Payslip = {
 };
 
 const PERIOD_TYPE_LABEL: Record<PayPeriodType, string> = {
-  daily: 'Daily',
   weekly: 'Weekly',
   monthly: 'Monthly',
 };
@@ -88,6 +89,34 @@ const getMonthRange = (d: Date) => {
   return { start, end, year, month, daysInMonth: end.getDate() };
 };
 
+const getWeekRange = (year: number, month: number, week: WeekNumber) => {
+  const weekStartDay = (week - 1) * 7 + 1;
+  const weekEndDay = week === 4 ? new Date(year, month + 1, 0).getDate() : week * 7;
+  return { startDay: weekStartDay, endDay: weekEndDay };
+};
+
+const getCurrentWeekOfMonth = (date: Date): WeekNumber => {
+  const day = date.getDate();
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
+};
+
+const isWorkingDay = (date: Date) => {
+  const day = date.getDay();
+  return day >= 1 && day <= 6;
+};
+
+const countWorkingDaysInRange = (year: number, month: number, startDay: number, endDay: number) => {
+  let count = 0;
+  for (let d = startDay; d <= endDay; d++) {
+    const date = new Date(year, month, d);
+    if (isWorkingDay(date)) count++;
+  }
+  return count;
+};
+
 const dateToYmd = (d: Date) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -101,7 +130,9 @@ const countDaysPresentForMonth = async (employeeId: number, monthDate: Date) => 
   for (let i = 0; i < daysInMonth; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    dates.push(dateToYmd(d));
+    if (isWorkingDay(d)) {
+      dates.push(dateToYmd(d));
+    }
   }
 
   const presentDays = new Set<string>();
@@ -126,7 +157,7 @@ const countDaysPresentForMonth = async (employeeId: number, monthDate: Date) => 
   };
 
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
-  return presentDays.size;
+  return Array.from(presentDays);
 };
 
 const computeTotals = (p: Payslip | null) => {
@@ -156,16 +187,52 @@ const SalaryScreen: React.FC = () => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  const [selectedWeek, setSelectedWeek] = useState<WeekNumber>(() => getCurrentWeekOfMonth(new Date()));
 
-  const [daysPresent, setDaysPresent] = useState<number>(0);
+  const [presentDates, setPresentDates] = useState<string[]>([]);
   const [daysPresentLoading, setDaysPresentLoading] = useState(false);
   const [daysPresentError, setDaysPresentError] = useState<string>('');
 
+  const [allEmployees, setAllEmployees] = useState<EmployeeOption[]>(DEFAULT_EMPLOYEES);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [employeesError, setEmployeesError] = useState<string>('');
+
   const employeeOptions = useMemo(() => {
     const q = employeeQuery.trim().toLowerCase();
-    if (!q) return DEFAULT_EMPLOYEES;
-    return DEFAULT_EMPLOYEES.filter((e) => e.name.toLowerCase().includes(q) || String(e.id).includes(q));
-  }, [employeeQuery]);
+    if (!q) return allEmployees;
+    return allEmployees.filter((e) => e.name.toLowerCase().includes(q) || String(e.id).includes(q));
+  }, [employeeQuery, allEmployees]);
+
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setEmployeesError('');
+        setEmployeesLoading(true);
+        const employees = await ApiService.getAllEmployees();
+        if (!alive) return;
+
+        const mapped = employees.map((emp: any) => ({
+          id: emp.id || emp.employee_id || 0,
+          name: emp.full_name || emp.name || `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || 'Unknown',
+          branch: emp.branch_name || emp.branch || 'Unknown',
+          dailyRate: Number(emp.daily_rate || emp.rate || 600),
+        }));
+
+        setAllEmployees(mapped.length > 0 ? mapped : DEFAULT_EMPLOYEES);
+      } catch (e: any) {
+        if (!alive) return;
+        console.error('Failed to load employees:', e);
+        setEmployeesError(String(e?.message || 'Failed to load employees'));
+      } finally {
+        if (!alive) return;
+        setEmployeesLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     let alive = true;
@@ -173,9 +240,9 @@ const SalaryScreen: React.FC = () => {
       try {
         setDaysPresentError('');
         setDaysPresentLoading(true);
-        const count = await countDaysPresentForMonth(activeEmployee.id, monthCursor);
+        const dates = await countDaysPresentForMonth(activeEmployee.id, monthCursor);
         if (!alive) return;
-        setDaysPresent(count);
+        setPresentDates(dates);
       } catch (e: any) {
         if (!alive) return;
         setDaysPresentError(String(e?.message || 'Failed to load attendance for this month'));
@@ -190,21 +257,49 @@ const SalaryScreen: React.FC = () => {
   }, [activeEmployee.id, monthCursor]);
 
   const currentPayslip = useMemo(() => {
-    const { start, end } = getMonthRange(monthCursor);
-    const periodLabel = `${start.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}`;
+    const { start, end, year, month, daysInMonth } = getMonthRange(monthCursor);
+    let periodLabel: string;
+    let daysInPeriod: number;
+    let deductionMultiplier: number;
 
-    const basePay = daysPresent * (activeEmployee.dailyRate || 0);
+    if (periodType === 'weekly') {
+      const { startDay, endDay } = getWeekRange(year, month, selectedWeek);
+      const expectedWorkingDays = countWorkingDaysInRange(year, month, startDay, endDay);
+      const weekDates: string[] = [];
+      for (let d = startDay; d <= endDay; d++) {
+        const date = new Date(year, month, d);
+        if (isWorkingDay(date)) {
+          weekDates.push(dateToYmd(date));
+        }
+      }
+      daysInPeriod = weekDates.filter(d => presentDates.includes(d)).length;
+      periodLabel = `Week ${selectedWeek}: ${monthLabel(monthCursor)} ${startDay}-${endDay} (${daysInPeriod}/${expectedWorkingDays} days)`;
+      deductionMultiplier = selectedWeek === 4 ? 0 : 1 / 3;
+    } else {
+      const expectedWorkingDays = countWorkingDaysInRange(year, month, 1, daysInMonth);
+      daysInPeriod = presentDates.length;
+      periodLabel = `${start.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })} (${daysInPeriod}/${expectedWorkingDays} days)`;
+      deductionMultiplier = 1;
+    }
+
+    const basePay = daysInPeriod * (activeEmployee.dailyRate || 0);
     const earnings: PayslipLine[] = [
-      { label: `Basic Pay (${daysPresent} days)`, amount: basePay },
+      { label: `Basic Pay (${daysInPeriod} days)`, amount: basePay },
       { label: 'Performance Bonus', amount: performanceBonus },
     ];
 
+    const totalDeductions = FIXED_DEDUCTIONS.sss + FIXED_DEDUCTIONS.philhealth + FIXED_DEDUCTIONS.pagibig;
+    const appliedDeductions = totalDeductions * deductionMultiplier;
+
     const deductions: PayslipLine[] = [
-      { label: 'SSS', amount: -FIXED_DEDUCTIONS.sss },
-      { label: 'PhilHealth', amount: -FIXED_DEDUCTIONS.philhealth },
-      { label: 'Pag-IBIG', amount: -FIXED_DEDUCTIONS.pagibig },
-      { label: 'Withholding Tax', amount: -FIXED_DEDUCTIONS.withholdingTax },
+      { label: 'SSS', amount: -(FIXED_DEDUCTIONS.sss * deductionMultiplier) },
+      { label: 'PhilHealth', amount: -(FIXED_DEDUCTIONS.philhealth * deductionMultiplier) },
+      { label: 'Pag-IBIG', amount: -(FIXED_DEDUCTIONS.pagibig * deductionMultiplier) },
     ];
+
+    if (periodType === 'weekly' && selectedWeek === 4) {
+      deductions.push({ label: 'Note: No deductions in Week 4', amount: 0 });
+    }
 
     return {
       id: `PS-${dateToYmd(monthCursor)}-${String(activeEmployee.id).padStart(4, '0')}`,
@@ -218,7 +313,7 @@ const SalaryScreen: React.FC = () => {
       deductions,
       notes: daysPresentLoading ? 'Loading attendance…' : daysPresentError ? `Attendance: ${daysPresentError}` : undefined,
     };
-  }, [activeEmployee, daysPresent, daysPresentError, daysPresentLoading, monthCursor, performanceBonus, periodType]);
+  }, [activeEmployee, presentDates, daysPresentError, daysPresentLoading, monthCursor, performanceBonus, periodType, selectedWeek]);
 
   const payslipHistory = useMemo(() => {
     return [] as Payslip[];
@@ -234,7 +329,7 @@ const SalaryScreen: React.FC = () => {
         <View style={styles.headerRow}>
           <View style={styles.headerTextCol}>
             <Text style={styles.title}>Payslip</Text>
-            <Text style={styles.subtitle}>UI only • Earnings, deductions, and net pay preview</Text>
+            <Text style={styles.subtitle}>Earnings, deductions, and net pay preview</Text>
           </View>
 
           <View style={styles.headerActions}>
@@ -292,6 +387,22 @@ const SalaryScreen: React.FC = () => {
             </Pressable>
           </View>
 
+          {periodType === 'weekly' && (
+            <>
+              <Text style={[styles.sectionLabel, { marginTop: Spacing.md }]}>Current Week</Text>
+              <View style={styles.weekRow}>
+                <View style={[styles.weekChip, styles.weekChipActive]}>
+                  <Text style={[styles.weekChipText, styles.weekChipTextActive]}>
+                    Week {selectedWeek}
+                  </Text>
+                  {selectedWeek === 4 && (
+                    <Text style={styles.noDeductionBadge}>No Deduction</Text>
+                  )}
+                </View>
+              </View>
+            </>
+          )}
+
           <Text style={[styles.sectionLabel, { marginTop: Spacing.md }]}>Performance Bonus (PHP)</Text>
           <TextInput
             value={bonusInput}
@@ -343,7 +454,7 @@ const SalaryScreen: React.FC = () => {
             </View>
             <View style={styles.kvRow}>
               <Text style={styles.kvLabel}>Days Present</Text>
-              <Text style={styles.kvValue}>{daysPresentLoading ? 'Loading…' : String(daysPresent)}</Text>
+              <Text style={styles.kvValue}>{daysPresentLoading ? 'Loading…' : String(presentDates.length)}</Text>
             </View>
 
             <View style={styles.sectionDivider} />
@@ -438,27 +549,37 @@ const SalaryScreen: React.FC = () => {
             />
 
             <View style={styles.modalList}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {employeeOptions.map((e) => {
-                  const active = e.id === activeEmployee.id;
-                  return (
-                    <Pressable
-                      key={e.id}
-                      style={[styles.modalListRow, active ? styles.modalListRowActive : undefined]}
-                      onPress={() => {
-                        setActiveEmployee(e);
-                        setEmployeePickerOpen(false);
-                        setEmployeeQuery('');
-                      }}>
-                      <View style={styles.modalListRowLeft}>
-                        <Text style={styles.modalListRowTitle}>{e.name}</Text>
-                        <Text style={styles.modalListRowSubtitle}>ID: {e.id} • {e.branch} • ₱ {formatMoney(e.dailyRate)}/day</Text>
-                      </View>
-                      <Text style={styles.modalListRowTag}>{active ? 'Selected' : ''}</Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+              {employeesLoading ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptySubtitle}>Loading employees...</Text>
+                </View>
+              ) : employeesError ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptySubtitle}>{employeesError}</Text>
+                </View>
+              ) : (
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {employeeOptions.map((e) => {
+                    const active = e.id === activeEmployee.id;
+                    return (
+                      <Pressable
+                        key={e.id}
+                        style={[styles.modalListRow, active ? styles.modalListRowActive : undefined]}
+                        onPress={() => {
+                          setActiveEmployee(e);
+                          setEmployeePickerOpen(false);
+                          setEmployeeQuery('');
+                        }}>
+                        <View style={styles.modalListRowLeft}>
+                          <Text style={styles.modalListRowTitle}>{e.name}</Text>
+                          <Text style={styles.modalListRowSubtitle}>ID: {e.id} • {e.branch} • ₱ {formatMoney(e.dailyRate)}/day</Text>
+                        </View>
+                        <Text style={styles.modalListRowTag}>{active ? 'Selected' : ''}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              )}
             </View>
 
             <View style={styles.modalActions}>
@@ -576,7 +697,7 @@ const SalaryScreen: React.FC = () => {
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>Month</Text>
                 <Text style={styles.modalValue}>{monthLabel(monthCursor)}</Text>
-                <Text style={styles.modalHint}>Days present: {daysPresentLoading ? 'Loading…' : daysPresent}</Text>
+                <Text style={styles.modalHint}>Days present: {daysPresentLoading ? 'Loading…' : presentDates.length}</Text>
               </View>
 
               <View style={styles.sectionDivider} />
@@ -695,11 +816,48 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight:
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     color: colors.text,
+    marginBottom: Spacing.md,
   },
   filtersRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
     marginTop: Spacing.md,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    flexWrap: 'wrap',
+  },
+  weekChip: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  weekChipActive: {
+    backgroundColor: colors.tint,
+    borderColor: colors.tint,
+  },
+  weekChipInactive: {
+    backgroundColor: colors.surface,
+    borderColor: borderLight,
+  },
+  weekChipText: {
+    ...Typography.caption,
+  },
+  weekChipTextActive: {
+    color: colors.buttonPrimaryText,
+    fontWeight: '600',
+  },
+  weekChipTextInactive: {
+    color: colors.text,
+  },
+  noDeductionBadge: {
+    ...Typography.caption,
+    fontSize: 10,
+    color: colors.tint,
+    marginTop: 2,
   },
   chip: {
     paddingVertical: Spacing.sm,
@@ -780,9 +938,10 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight:
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
   },
   payslipBody: {
     paddingHorizontal: Spacing.md,
@@ -928,9 +1087,12 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight:
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     borderColor: colors.border,
-    maxHeight: '85%',
+    maxHeight: '80%',
+    width: '100%',
     zIndex: 1,
     elevation: 6,
+    padding: Spacing.lg,
+    flexDirection: 'column',
   },
   modalScroll: {
     flexGrow: 0,
@@ -942,7 +1104,7 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight:
   modalTitle: {
     ...Typography.h3,
     color: colors.text,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   modalSection: {
     marginBottom: Spacing.md,
@@ -974,15 +1136,16 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight:
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: Spacing.sm,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.lg,
   },
   modalList: {
-    marginTop: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
     backgroundColor: colors.surface,
+    flex: 1,
+    minHeight: 200,
   },
   modalListRow: {
     paddingHorizontal: Spacing.md,

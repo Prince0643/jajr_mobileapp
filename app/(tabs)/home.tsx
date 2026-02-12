@@ -8,15 +8,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const HomeScreen: React.FC = () => {
@@ -472,10 +472,10 @@ const HomeScreen: React.FC = () => {
   const getTotalPresentCount = () => {
     const loadedEmployees = branches.flatMap(b => b.employees || []);
     if (loadedEmployees.length > 0) {
-      // Count unique employee IDs who are currently timed in (is_time_running or time_in and no time_out)
+      // Count unique employee IDs who are currently Present
       const timedInIds = new Set<number>();
       loadedEmployees.forEach(e => {
-        if (e.is_time_running === true || (!!e.time_in && !e.time_out)) {
+        if (e.today_status === 'Present') {
           timedInIds.add(e.id);
         }
       });

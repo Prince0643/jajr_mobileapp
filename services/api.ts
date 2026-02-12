@@ -141,6 +141,29 @@ export class ApiService {
     return [];
   }
 
+  static async getAllEmployees(): Promise<Employee[]> {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://jajr.xandree.com/';
+    const url = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}employees_today_status_api.php`;
+    const raw = await apiClient.postForm<any>(url, {});
+
+    if (typeof raw === 'string' && raw.toLowerCase().includes('<!doctype html')) {
+      console.log('🔴 getAllEmployees received HTML instead of JSON. URL:', url);
+      throw new Error('Employees endpoint returned HTML (wrong base URL/path).');
+    }
+
+    console.log('🔵 getAllEmployees raw response:', JSON.stringify(raw, null, 2));
+
+    if (Array.isArray(raw)) {
+      return raw as Employee[];
+    }
+
+    if (raw && Array.isArray(raw.employees)) {
+      return raw.employees as Employee[];
+    }
+
+    return [];
+  }
+
   static async getShiftLogsToday(payload: {
     employee_id: number;
     date?: string;

@@ -39,7 +39,7 @@ const BranchListItem: React.FC<BranchListItemProps> = ({
 
   const employeesLoaded = Array.isArray(branch.employees);
   const employees = Array.isArray(branch.employees) ? branch.employees : [];
-  const timedInCount = employeesLoaded ? employees.filter(emp => !!emp.time_in && !emp.time_out).length : 0;
+  const timedInCount = employeesLoaded ? employees.filter(emp => emp.today_status === 'Present').length : 0;
   const totalCount = employeesLoaded ? employees.length : 0;
 
   const headerLabel = branch.isLoading

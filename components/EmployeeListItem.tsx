@@ -82,16 +82,12 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
     if (hasOt) return '#8E44AD';
     if (statusLower === 'absent') return '#FF3B30';
     if (statusLower === 'present') return '#34C759';
-    if (employee.time_in && employee.time_out) return '#34C759';
-    if (isTimeRunning) return '#FF9500';
     if (employee.isDisabled) return colors.textDisabled || '#9E9E9E';
     return colors.tint;
   };
 
   const getStatusTextColor = () => {
     if (hasOt) return '#fff';
-    if (employee.time_in && employee.time_out) return '#fff';
-    if (employee.time_in) return '#fff';
     if (employee.isDisabled) return colors.buttonPrimaryText || '#000';
     return colors.buttonPrimaryText || '#000';
   };
@@ -100,8 +96,6 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
     if (hasOt) return 'OT';
     if (statusLower === 'absent') return 'ABSENT';
     if (statusLower === 'present') return 'PRESENT';
-    if (employee.time_in && employee.time_out) return 'PRESENT';
-    if (isTimeRunning) return 'PRESENT';
     if (employee.isDisabled) return 'MARKED ELSEWHERE';
     return 'TIME IN';
   };

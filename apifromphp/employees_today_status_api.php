@@ -126,7 +126,7 @@ $sql = "SELECT
             e.branch_id,
             b.branch_name AS assigned_branch_name,
             a.branch_name,
-            a.status as today_status,
+            a.status as db_status,
             {$timeInSelect} as time_in,
             {$timeOutSelect} as time_out,
             COALESCE(a.is_auto_absent, 0) as is_auto_absent,
@@ -160,6 +160,22 @@ $result = mysqli_stmt_get_result($stmt);
 
 $employees = [];
 while ($row = mysqli_fetch_assoc($result)) {
+    // Calculate today_status based on actual attendance data, not just the status column
+    $calculatedStatus = null;
+    $hasTimeIn = !is_null($row['time_in']);
+    $hasTimeOut = !is_null($row['time_out']);
+    $isAutoAbsent = (bool)$row['is_auto_absent'];
+    
+    if ($isAutoAbsent) {
+        $calculatedStatus = 'Absent';
+    } elseif ($hasTimeIn && !$hasTimeOut) {
+        $calculatedStatus = 'Present'; // Active session (timed in, not timed out)
+    } elseif ($hasTimeIn && $hasTimeOut) {
+        $calculatedStatus = 'Present'; // Completed session
+    } else {
+        $calculatedStatus = null; // No attendance record for today
+    }
+    
     $employees[] = [
         'id' => (int)$row['id'],
         'employee_code' => $row['employee_code'],
@@ -169,7 +185,7 @@ while ($row = mysqli_fetch_assoc($result)) {
         'branch_id' => isset($row['branch_id']) ? (is_null($row['branch_id']) ? null : (int)$row['branch_id']) : null,
         'assigned_branch_name' => $row['assigned_branch_name'],
         'branch_name' => $row['branch_name'],
-        'today_status' => $row['today_status'],
+        'today_status' => $calculatedStatus,
         'time_in' => $row['time_in'],
         'time_out' => $row['time_out'],
         'is_auto_absent' => (bool)$row['is_auto_absent'],

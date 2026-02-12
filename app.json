@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "y",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.jajrc.myapp",
@@ -51,6 +55,12 @@
       "eas": {
         "projectId": "6494986a-b9c4-4e48-97da-bf84f1673346"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6494986a-b9c4-4e48-97da-bf84f1673346"
     }
   }
 }
