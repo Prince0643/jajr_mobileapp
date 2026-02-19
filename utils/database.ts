@@ -165,7 +165,7 @@ class DatabaseHelper {
       employee.employee_code,
       employee.first_name,
       employee.last_name,
-      employee.branch_name,
+      employee.branch_name ?? null,
       employee.id,
       now,
       now

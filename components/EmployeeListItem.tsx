@@ -1,6 +1,7 @@
 import { Colors } from '@/constants/theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { ApiService } from '@/services/api';
+import { OvertimeService } from '@/services/overtimeService';
 import { Employee } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -43,6 +44,10 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
   const [otModalVisible, setOtModalVisible] = useState(false);
   const [otHours, setOtHours] = useState('');
   const [otSaving, setOtSaving] = useState(false);
+  const [otRequestModalVisible, setOtRequestModalVisible] = useState(false);
+  const [otRequestHours, setOtRequestHours] = useState('');
+  const [otRequestReason, setOtRequestReason] = useState('');
+  const [otRequestSaving, setOtRequestSaving] = useState(false);
   const [notesModalVisible, setNotesModalVisible] = useState(false);
   const [notes, setNotes] = useState('');
   const [notesLoading, setNotesLoading] = useState(false);
@@ -220,6 +225,50 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
     setOtHours(digitsOnly);
   };
 
+  const handleRequestOvertime = () => {
+    closeMenu();
+    setOtRequestHours('');
+    setOtRequestReason('');
+    setOtRequestModalVisible(true);
+  };
+
+  const handleSubmitOvertimeRequest = async () => {
+    const hours = parseFloat(otRequestHours);
+    if (isNaN(hours) || hours <= 0 || hours > 4) {
+      Alert.alert('Invalid Hours', 'Please enter valid overtime hours (0.5 - 4 hours)');
+      return;
+    }
+
+    if (!otRequestReason.trim()) {
+      Alert.alert('Reason Required', 'Please provide a reason for overtime');
+      return;
+    }
+
+    setOtRequestSaving(true);
+    try {
+      const response = await OvertimeService.submitOvertime({
+        employee_id: employee.id,
+        employee_code: employee.employee_code,
+        branch_name: (employee as any).branch_name || 'Unknown',
+        requested_hours: hours,
+        overtime_reason: otRequestReason.trim(),
+      });
+
+      if (response.success) {
+        Alert.alert('Success', `Overtime request submitted for ${employee.first_name} ${employee.last_name}`);
+        setOtRequestModalVisible(false);
+        setOtRequestHours('');
+        setOtRequestReason('');
+      } else {
+        Alert.alert('Failed', response.message || 'Failed to submit overtime request');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred while submitting the request');
+    } finally {
+      setOtRequestSaving(false);
+    }
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -280,6 +329,9 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem} onPress={handleSetAsOt}>
               <Text style={[styles.menuItemText, { color: colors.text }]}>Set as OT</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem} onPress={handleRequestOvertime}>
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Request Overtime</Text>
             </TouchableOpacity>
             {hasOt ? (
               <TouchableOpacity style={styles.menuItem} onPress={handleCopyOt}>
@@ -374,6 +426,70 @@ const EmployeeListItem: React.FC<EmployeeListItemProps> = ({
                 onPress={handleCloseNotesModal}
               >
                 <Text style={[styles.otBtnText, { color: colors.text }]}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={otRequestModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !otRequestSaving && setOtRequestModalVisible(false)}
+      >
+        <Pressable style={styles.menuOverlay} onPress={() => !otRequestSaving && setOtRequestModalVisible(false)}>
+          <Pressable style={[styles.otCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => {}}>
+            <Text style={[styles.otTitle, { color: colors.text }]}>
+              Request Overtime - {employee.first_name} {employee.last_name}
+            </Text>
+            <Text style={[styles.otSub, { color: colors.textSecondary || colors.icon }]}>
+              Submit overtime request for approval (max 4 hours)
+            </Text>
+
+            <Text style={[styles.formLabel, { color: colors.text }]}>Hours (0.5 - 4)</Text>
+            <TextInput
+              value={otRequestHours}
+              onChangeText={setOtRequestHours}
+              keyboardType="decimal-pad"
+              placeholder="e.g., 2.5"
+              placeholderTextColor={colors.textSecondary || colors.icon}
+              style={[styles.otInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface || colors.background }]}
+              maxLength={3}
+            />
+
+            <Text style={[styles.formLabel, { color: colors.text }]}>Reason</Text>
+            <TextInput
+              value={otRequestReason}
+              onChangeText={setOtRequestReason}
+              placeholder="e.g., Project deadline..."
+              placeholderTextColor={colors.textSecondary || colors.icon}
+              style={[styles.reasonInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface || colors.background }]}
+              multiline
+              numberOfLines={3}
+              maxLength={500}
+            />
+            <Text style={[styles.charCount, { color: colors.textSecondary }]}>{otRequestReason.length}/500</Text>
+
+            <View style={styles.otButtonsRow}>
+              <TouchableOpacity
+                style={[styles.otBtn, { backgroundColor: colors.surface || colors.background, borderColor: colors.border }]}
+                onPress={() => setOtRequestModalVisible(false)}
+                disabled={otRequestSaving}
+              >
+                <Text style={[styles.otBtnText, { color: colors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.otBtn,
+                  { backgroundColor: colors.tint, borderColor: colors.tint, opacity: otRequestHours.trim() && otRequestReason.trim() && !otRequestSaving ? 1 : 0.5 },
+                ]}
+                onPress={handleSubmitOvertimeRequest}
+                disabled={!otRequestHours.trim() || !otRequestReason.trim() || otRequestSaving}
+              >
+                <Text style={[styles.otBtnText, { color: colors.buttonPrimaryText || '#000' }]}>
+                  {otRequestSaving ? 'Submitting...' : 'Submit'}
+                </Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -526,6 +642,26 @@ const styles = StyleSheet.create({
   otBtnText: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  reasonInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    marginBottom: 4,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  charCount: {
+    fontSize: 12,
+    textAlign: 'right',
+    marginBottom: 12,
   },
 });
 

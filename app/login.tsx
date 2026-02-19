@@ -2,23 +2,24 @@ import { ForgotPasswordDialog } from '@/components';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { ApiService } from '@/services/api';
+import { procurementService } from '@/services/procurementService';
 import { ErrorHandler, SessionManager } from '@/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 interface LoginFormData {
   Key: string;
@@ -62,10 +63,10 @@ const LoginScreen: React.FC = () => {
   const onLogin = async (data: LoginFormData) => {
     setIsLoading(true);
     
-    // Debug: Log the data being sent
     console.log('Login data being sent:', data);
     
     try {
+      // Step 1: Login to Attendance System (PHP)
       const response = await ApiService.login({
         Key: data.Key || data.identifier,
         identifier: data.identifier,
@@ -75,6 +76,17 @@ const LoginScreen: React.FC = () => {
       
       if (response.success && response.user_data) {
         await SessionManager.saveUser(response.user_data, rememberMe);
+        
+        // Step 2: Auto-login to Procurement System (Node.js)
+        try {
+          const employeeNo = response.user_data.employee_no || response.user_data.employee_code || data.identifier;
+          const procurementResponse = await procurementService.login(employeeNo, data.password);
+          console.log('Procurement auto-login successful:', procurementResponse.user.employee_no);
+        } catch (procurementError) {
+          // Log but don't fail - procurement features will be disabled
+          console.log('Procurement auto-login failed (optional):', procurementError);
+        }
+        
         router.replace('/(tabs)/dashboard');
       } else {
         Alert.alert('Login Failed', response.message || 'Invalid credentials');
@@ -103,7 +115,7 @@ const LoginScreen: React.FC = () => {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.title}>Attendance Login</Text>
+          <Text style={styles.title}>JAJR Login</Text>
           
           <Controller
             control={control}
@@ -193,6 +205,16 @@ const LoginScreen: React.FC = () => {
 
           <TouchableOpacity style={styles.forgotPasswordButton} onPress={onForgotPassword}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity 
+            style={styles.kioskButton} 
+            onPress={() => router.push('/kiosk')}
+          >
+            <Ionicons name="scan-outline" size={20} color={colors.tint} style={styles.kioskIcon} />
+            <Text style={styles.kioskButtonText}>Switch to Kiosk Mode</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -366,6 +388,29 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
     forgotPasswordText: {
       color: colors.tint,
       fontSize: Typography.caption.fontSize,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginVertical: Spacing.lg,
+    },
+    kioskButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.tint,
+      borderRadius: BorderRadius.md,
+      backgroundColor: 'transparent',
+    },
+    kioskIcon: {
+      marginRight: Spacing.sm,
+    },
+    kioskButtonText: {
+      color: colors.tint,
+      fontSize: Typography.body.fontSize,
+      fontWeight: '600',
     },
   });
 

@@ -1,5 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { procurementService } from '@/services/procurementService';
 import { UserData } from '@/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface SessionData {
   userId: number;
@@ -9,9 +10,18 @@ export interface SessionData {
   rememberMe: boolean;
 }
 
+export interface UserAttendanceState {
+  employeeId: number;
+  branchName: string | null;
+  timeIn: string | null;
+  timeOut: string | null;
+  isTimedIn: boolean;
+}
+
 export class SessionManager {
   private static readonly USER_KEY = 'user_session';
   private static readonly REMEMBER_KEY = 'remember_me';
+  private static readonly ATTENDANCE_KEY = 'user_attendance_state';
 
   static async saveUser(userData: UserData, rememberMe: boolean = false): Promise<void> {
     const sessionData: SessionData = {
@@ -53,6 +63,28 @@ export class SessionManager {
   static async clearSession(): Promise<void> {
     await AsyncStorage.removeItem(this.USER_KEY);
     await AsyncStorage.removeItem(this.REMEMBER_KEY);
+    await AsyncStorage.removeItem(this.ATTENDANCE_KEY);
+    // Also clear procurement session
+    await procurementService.logout();
+  }
+
+  static async getUserAttendanceState(): Promise<UserAttendanceState | null> {
+    try {
+      const data = await AsyncStorage.getItem(this.ATTENDANCE_KEY);
+      if (!data) return null;
+      return JSON.parse(data) as UserAttendanceState;
+    } catch (error) {
+      console.error('Error parsing attendance state:', error);
+      return null;
+    }
+  }
+
+  static async saveUserAttendanceState(state: UserAttendanceState): Promise<void> {
+    await AsyncStorage.setItem(this.ATTENDANCE_KEY, JSON.stringify(state));
+  }
+
+  static async clearUserAttendanceState(): Promise<void> {
+    await AsyncStorage.removeItem(this.ATTENDANCE_KEY);
   }
 
   static async updateRememberMe(rememberMe: boolean): Promise<void> {

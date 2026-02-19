@@ -8,6 +8,7 @@ export interface LoginRequest {
 export interface UserData {
   id: number;
   employee_code: string;
+  employee_no?: string; // Same as employee_code, for procurement system compatibility
   first_name: string;
   last_name: string;
 }

@@ -70,10 +70,10 @@ const DashboardScreen: React.FC = () => {
         onPress: () => router.push('/(tabs)/procurement'),
       },
       {
-        title: 'Settings',
-        subtitle: 'Profile & app preferences',
-        icon: 'settings-outline',
-        onPress: () => router.push('/(tabs)/settings'),
+        title: 'Cash Advance',
+        subtitle: 'Request & view balance',
+        icon: 'cash-outline',
+        onPress: () => router.push('/cash-advance'),
       },
     ],
     [router]

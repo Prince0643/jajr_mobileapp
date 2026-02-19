@@ -1,9 +1,9 @@
-import { BranchList, EmployeeTimeLogsModal, EmptyState, LoadingState, LogoutModal, SyncStatus } from '@/components';
+import { BranchList, EmployeeTimeLogsModal, EmptyState, LoadingState, LogoutModal, OvertimeModal, SyncStatus } from '@/components';
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { ApiService } from '@/services/api';
 import { Branch, Employee } from '@/types';
-import { ErrorHandler, SessionManager } from '@/utils';
+import { ErrorHandler, SessionManager, UserAttendanceState } from '@/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -40,6 +40,13 @@ const HomeScreen: React.FC = () => {
   const [timeLogsEmployeeName, setTimeLogsEmployeeName] = useState('');
   const [timeLogs, setTimeLogs] = useState<Array<{ id?: number; time_in: string | null; time_out: string | null }>>([]);
   const [timeLogsLoading, setTimeLogsLoading] = useState(false);
+
+  // Self time-in state for logged-in user
+  const [userAttendance, setUserAttendance] = useState<UserAttendanceState | null>(null);
+  const [isUserTimeLoading, setIsUserTimeLoading] = useState(false);
+  const [selfBranchPickerVisible, setSelfBranchPickerVisible] = useState(false);
+  const [overtimeModalVisible, setOvertimeModalVisible] = useState(false);
+  const [selectedSelfBranch, setSelectedSelfBranch] = useState<Branch | null>(null);
   
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -78,6 +85,11 @@ const HomeScreen: React.FC = () => {
       // Get current user
       const user = await SessionManager.getUser();
       setCurrentUser(user);
+
+      // Load user's attendance status
+      if (user) {
+        await loadUserAttendance(user.userId);
+      }
 
       // Load initial branches (mock data for now)
       await loadBranches();
@@ -129,6 +141,71 @@ const HomeScreen: React.FC = () => {
     } catch (error) {
       const errorInfo = ErrorHandler.handle(error);
       Alert.alert('Error', 'Failed to load branches: ' + ErrorHandler.getDisplayMessage(errorInfo));
+    }
+  };
+
+  const loadUserAttendance = async (employeeId: number) => {
+    try {
+      // Fetch current user's attendance from API
+      const today = new Date().toISOString().slice(0, 10);
+      const response = await ApiService.getShiftLogsToday({ employee_id: employeeId, date: today, limit: 10 });
+      
+      if (response.success && response.logs && response.logs.length > 0) {
+        // Find the most recent log without a time_out (active session)
+        const activeLog = response.logs.find(log => log.time_in && !log.time_out);
+        const latestLog = response.logs[0];
+        
+        if (activeLog) {
+          // User is currently timed in
+          const isTimedIn = true;
+          
+          // Try to get branch name from the log or find in branches
+          let branchName = (activeLog as any).branch_name || (activeLog as any).branchName || null;
+          
+          // If no branch name in log, try to find from branches list
+          if (!branchName) {
+            const userBranch = branches.find(b => 
+              b.employees?.some(e => e.id === employeeId)
+            );
+            branchName = userBranch?.branchName || null;
+          }
+
+          const state: UserAttendanceState = {
+            employeeId,
+            branchName,
+            timeIn: activeLog.time_in || null,
+            timeOut: null,
+            isTimedIn,
+          };
+          
+          setUserAttendance(state);
+          await SessionManager.saveUserAttendanceState(state);
+        } else if (latestLog.time_out) {
+          // User has timed out today
+          const state: UserAttendanceState = {
+            employeeId,
+            branchName: (latestLog as any).branch_name || (latestLog as any).branchName || null,
+            timeIn: latestLog.time_in || null,
+            timeOut: latestLog.time_out || null,
+            isTimedIn: false,
+          };
+          setUserAttendance(state);
+          await SessionManager.saveUserAttendanceState(state);
+        }
+      } else {
+        // User has not timed in today
+        const state: UserAttendanceState = {
+          employeeId,
+          branchName: null,
+          timeIn: null,
+          timeOut: null,
+          isTimedIn: false,
+        };
+        setUserAttendance(state);
+        await SessionManager.saveUserAttendanceState(state);
+      }
+    } catch (error) {
+      console.error('Error loading user attendance:', error);
     }
   };
 
@@ -332,6 +409,19 @@ const HomeScreen: React.FC = () => {
         }));
         setBranches(finalBranches);
 
+        // Update self attendance if this is the current user
+        if (currentUser && employee.id === currentUser.userId) {
+          const updatedState: UserAttendanceState = {
+            employeeId: employee.id,
+            branchName: branch.branchName,
+            timeIn: serverTimeIn,
+            timeOut: null,
+            isTimedIn: true,
+          };
+          setUserAttendance(updatedState);
+          await SessionManager.saveUserAttendanceState(updatedState);
+        }
+
         if (shouldAssignBranch) {
           await loadBranches();
         }
@@ -342,7 +432,7 @@ const HomeScreen: React.FC = () => {
       const errorInfo = ErrorHandler.handle(error);
       Alert.alert('Error', ErrorHandler.getDisplayMessage(errorInfo));
     }
-  }, [branches, timeInBranchMap]);
+  }, [branches, timeInBranchMap, currentUser]);
 
   const handleEmployeeTimeOut = useCallback(async (employee: Employee, branch: Branch) => {
     if (branch.branchName === 'Pool') {
@@ -405,6 +495,19 @@ const HomeScreen: React.FC = () => {
           }) || [],
         }));
         setBranches(finalBranches);
+
+        // Update self attendance if this is the current user
+        if (currentUser && employee.id === currentUser.userId) {
+          const updatedState: UserAttendanceState = {
+            employeeId: employee.id,
+            branchName: branch.branchName,
+            timeIn: employee.time_in || null,
+            timeOut: serverTimeOut,
+            isTimedIn: false,
+          };
+          setUserAttendance(updatedState);
+          await SessionManager.saveUserAttendanceState(updatedState);
+        }
       } else {
         Alert.alert('Time Out Failed', response?.message || 'Failed to time out');
       }
@@ -412,7 +515,7 @@ const HomeScreen: React.FC = () => {
       const errorInfo = ErrorHandler.handle(error);
       Alert.alert('Error', ErrorHandler.getDisplayMessage(errorInfo));
     }
-  }, [branches, timeInBranchMap]);
+  }, [branches, timeInBranchMap, currentUser]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -523,6 +626,135 @@ const HomeScreen: React.FC = () => {
     setTransferFromBranch(null);
   };
 
+  // Self time-in/time-out handlers for logged-in user
+  const handleSelfTimeIn = useCallback(async () => {
+    if (!currentUser) return;
+
+    // Find user's branch from the branches list
+    const userBranch = branches.find(b => 
+      b.employees?.some(e => e.id === currentUser.userId)
+    );
+
+    // If no branch assigned, show branch picker
+    if (!userBranch || userBranch.branchName === 'Pool') {
+      const availableBranches = branches.filter(b => b.branchName !== 'Pool');
+      if (availableBranches.length === 0) {
+        Alert.alert('No Branches', 'No branches are available. Please contact your administrator.');
+        return;
+      }
+      setSelfBranchPickerVisible(true);
+      return;
+    }
+
+    // User has a branch, proceed with time-in
+    await performSelfTimeIn(userBranch);
+  }, [currentUser, branches]);
+
+  const performSelfTimeIn = async (branch: Branch) => {
+    if (!currentUser) return;
+
+    setIsUserTimeLoading(true);
+    const now = new Date();
+    const nowIso = now.toISOString().replace('T', ' ').slice(0, 19);
+
+    try {
+      // First assign the employee to the branch if needed
+      const hasAssignedBranch = branches.some(b => 
+        b.employees?.some(e => e.id === currentUser.userId && b.branchName !== 'Pool')
+      );
+      
+      if (!hasAssignedBranch && typeof branch.id === 'number') {
+        try {
+          const assignRes = await ApiService.setEmployeeBranch({ 
+            employee_id: currentUser.userId, 
+            branch_id: branch.id 
+          });
+          if (!assignRes?.success) {
+            console.log('Branch assignment note:', assignRes?.message || 'Could not assign branch');
+          }
+        } catch (e) {
+          console.log('Branch assignment failed (non-critical):', e);
+        }
+      }
+
+      const response = await ApiService.timeIn({
+        employee_id: currentUser.userId,
+        branch_name: branch.branchName,
+      });
+
+      if (response?.success) {
+        const serverTimeIn = response?.time_in ? String(response.time_in) : nowIso;
+        
+        const state: UserAttendanceState = {
+          employeeId: currentUser.userId,
+          branchName: branch.branchName,
+          timeIn: serverTimeIn,
+          timeOut: null,
+          isTimedIn: true,
+        };
+        
+        setUserAttendance(state);
+        await SessionManager.saveUserAttendanceState(state);
+        
+        // Refresh branches to show updated status
+        await loadBranches();
+      } else {
+        Alert.alert('Time In Failed', response?.message || 'Failed to time in');
+      }
+    } catch (error) {
+      const errorInfo = ErrorHandler.handle(error);
+      Alert.alert('Error', ErrorHandler.getDisplayMessage(errorInfo));
+    } finally {
+      setIsUserTimeLoading(false);
+    }
+  };
+
+  const handleSelectSelfBranch = async (branch: Branch) => {
+    setSelfBranchPickerVisible(false);
+    setSelectedSelfBranch(branch);
+    await performSelfTimeIn(branch);
+  };
+
+  const handleSelfTimeOut = useCallback(async () => {
+    if (!currentUser || !userAttendance?.branchName) return;
+
+    setIsUserTimeLoading(true);
+    const now = new Date();
+    const nowIso = now.toISOString().replace('T', ' ').slice(0, 19);
+
+    try {
+      const response = await ApiService.timeOut({
+        employee_id: currentUser.userId,
+        branch_name: userAttendance.branchName,
+      });
+
+      if (response?.success) {
+        const serverTimeOut = response?.time_out ? String(response.time_out) : nowIso;
+        
+        const state: UserAttendanceState = {
+          employeeId: currentUser.userId,
+          branchName: userAttendance.branchName,
+          timeIn: userAttendance.timeIn,
+          timeOut: serverTimeOut,
+          isTimedIn: false,
+        };
+        
+        setUserAttendance(state);
+        await SessionManager.saveUserAttendanceState(state);
+        
+        // Refresh branches to show updated status
+        await loadBranches();
+      } else {
+        Alert.alert('Time Out Failed', response?.message || 'Failed to time out');
+      }
+    } catch (error) {
+      const errorInfo = ErrorHandler.handle(error);
+      Alert.alert('Error', ErrorHandler.getDisplayMessage(errorInfo));
+    } finally {
+      setIsUserTimeLoading(false);
+    }
+  }, [currentUser, userAttendance]);
+
   if (isLoading) {
     return <LoadingState message="Loading attendance system..." />;
   }
@@ -563,6 +795,70 @@ const HomeScreen: React.FC = () => {
             <Text style={styles.statNumber}>{getBranchCount()}</Text>
             <Text style={styles.statLabel}>Projects</Text>
           </View>
+          <TouchableOpacity style={styles.statItem} onPress={() => setOvertimeModalVisible(true)}>
+            <Ionicons name="time-outline" size={24} color={colors.buttonPrimaryText} />
+            <Text style={styles.statLabel}>Overtime</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Self Time In Card */}
+        <View style={[
+          styles.selfTimeCard,
+          userAttendance?.isTimedIn && styles.selfTimeCardActive
+        ]}>
+          <View style={styles.selfTimeInfo}>
+            <View style={[
+              styles.selfTimeIconContainer,
+              userAttendance?.isTimedIn && styles.selfTimeIconContainerActive
+            ]}>
+              <Ionicons 
+                name={userAttendance?.isTimedIn ? "time" : "timer-outline"} 
+                size={24} 
+                color={userAttendance?.isTimedIn ? '#4CAF50' : colors.buttonPrimaryText} 
+              />
+            </View>
+            <View style={styles.selfTimeTextContainer}>
+              <Text style={[
+                styles.selfTimeStatus,
+                userAttendance?.isTimedIn && styles.selfTimeStatusActive
+              ]}>
+                {userAttendance?.isTimedIn ? 'Currently Timed In' : 'Not Timed In'}
+              </Text>
+              {userAttendance?.branchName && (
+                <Text style={[
+                  styles.selfTimeBranch,
+                  userAttendance?.isTimedIn && styles.selfTimeBranchActive
+                ]}>
+                  📍 {userAttendance.branchName}
+                </Text>
+              )}
+              {userAttendance?.timeIn && (
+                <Text style={[
+                  styles.selfTimeDetail,
+                  userAttendance?.isTimedIn && styles.selfTimeDetailActive
+                ]}>
+                  In: {new Date(userAttendance.timeIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.selfTimeButton,
+              userAttendance?.isTimedIn ? styles.selfTimeOutButton : styles.selfTimeInButton,
+              isUserTimeLoading && styles.selfTimeButtonDisabled,
+            ]}
+            onPress={userAttendance?.isTimedIn ? handleSelfTimeOut : handleSelfTimeIn}
+            disabled={isUserTimeLoading}
+          >
+            {isUserTimeLoading ? (
+              <Text style={styles.selfTimeButtonText}>...</Text>
+            ) : (
+              <Text style={styles.selfTimeButtonText}>
+                {userAttendance?.isTimedIn ? 'Time Out' : 'Time In'}
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -635,11 +931,16 @@ const HomeScreen: React.FC = () => {
                 <Text style={styles.helpStepText}>1. Tap any project name to open it (expand the project)</Text>
                 <Text style={styles.helpStepText}>2. Find an employee, then tap the employee card to Time In / Time Out</Text>
                 <Text style={styles.helpStepText}>3. Long-press an employee card to open Log Details (time in/out history)</Text>
-                <Text style={styles.helpStepText}>4. Tap the 3 dots (⋯) on the employee card for actions:</Text>
-                <Text style={styles.helpStepText}>   - Set OT: enter total OT hours for today, then Save</Text>
-                <Text style={styles.helpStepText}>   - Copy OT: copies the employee’s OT hours to clipboard</Text>
-                <Text style={styles.helpStepText}>   - Paste OT: pastes OT hours from clipboard into Set OT</Text>
-                <Text style={styles.helpStepText}>   - View Notes: view attendance/absent notes (if available)</Text>
+                <Text style={styles.helpStepText}>4. Tap the header "Overtime" button to request/approve overtime hours</Text>
+              </View>
+
+              <View style={styles.helpDivider} />
+
+              <Text style={styles.helpSectionTitle}>Overtime Requests</Text>
+              <View style={styles.helpStepList}>
+                <Text style={styles.helpStepText}>• Employees can submit overtime requests (max 4 hours)</Text>
+                <Text style={styles.helpStepText}>• Admins can approve or reject pending requests</Text>
+                <Text style={styles.helpStepText}>• Approved OT hours are automatically added to attendance</Text>
               </View>
 
               <View style={styles.helpDivider} />
@@ -691,12 +992,58 @@ const HomeScreen: React.FC = () => {
         </View>
       )}
 
+      {/* Self Branch Picker Modal */}
+      {selfBranchPickerVisible && (
+        <View style={{
+          position: 'absolute',
+          left: 0, right: 0, top: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          justifyContent: 'center', alignItems: 'center', zIndex: 1000
+        }}>
+          <View style={{ 
+            backgroundColor: colors.card, 
+            borderRadius: 12, 
+            padding: 24, 
+            width: 320, 
+            maxWidth: '90%',
+            maxHeight: '70%'
+          }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 16, color: colors.text }}>
+              Select a Project to Time In:
+            </Text>
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={true}>
+              {branches.filter(b => b.branchName !== 'Pool').map(b => (
+                <TouchableOpacity
+                  key={b.branchName}
+                  style={{ paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.border }}
+                  onPress={() => handleSelectSelfBranch(b)}
+                >
+                  <Text style={{ color: colors.text, fontSize: 15 }}>{b.branchName}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={{ marginTop: 18, alignSelf: 'flex-end' }}
+              onPress={() => setSelfBranchPickerVisible(false)}
+            >
+              <Text style={{ color: colors.tint, fontWeight: 'bold', fontSize: 15 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       <EmployeeTimeLogsModal
         visible={timeLogsVisible}
         employeeName={timeLogsEmployeeName}
         logs={timeLogs}
         isLoading={timeLogsLoading}
         onClose={() => setTimeLogsVisible(false)}
+      />
+
+      <OvertimeModal
+        visible={overtimeModalVisible}
+        onClose={() => setOvertimeModalVisible(false)}
+        currentUser={currentUser}
       />
     </View>
   );
@@ -850,6 +1197,91 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
       fontSize: 15,
       borderWidth: 1,
       borderColor: colors.border,
+    },
+    // Self Time In styles
+    selfTimeCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      borderRadius: BorderRadius.md,
+      padding: Spacing.md,
+      marginTop: Spacing.md,
+    },
+    selfTimeCardActive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.4)',
+    },
+    selfTimeInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    selfTimeIconContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: 'rgba(0, 0, 0, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    selfTimeIconContainerActive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    selfTimeTextContainer: {
+      marginLeft: Spacing.md,
+    },
+    selfTimeStatus: {
+      ...Typography.body,
+      fontWeight: '700',
+      color: colors.buttonPrimaryText,
+    },
+    selfTimeStatusActive: {
+      color: colors.buttonPrimaryText,
+    },
+    selfTimeBranch: {
+      ...Typography.caption,
+      color: colors.buttonPrimaryText,
+      opacity: 0.9,
+      marginTop: 2,
+    },
+    selfTimeBranchActive: {
+      color: colors.buttonPrimaryText,
+      opacity: 1,
+      fontWeight: '600',
+    },
+    selfTimeDetail: {
+      ...Typography.caption,
+      color: colors.buttonPrimaryText,
+      opacity: 0.8,
+      marginTop: 2,
+      fontSize: 12,
+    },
+    selfTimeDetailActive: {
+      color: colors.buttonPrimaryText,
+      opacity: 0.9,
+    },
+    selfTimeButton: {
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      borderRadius: BorderRadius.md,
+      minWidth: 80,
+      alignItems: 'center',
+    },
+    selfTimeInButton: {
+      backgroundColor: '#4CAF50',
+    },
+    selfTimeOutButton: {
+      backgroundColor: '#F44336',
+    },
+    selfTimeButtonDisabled: {
+      opacity: 0.6,
+    },
+    selfTimeButtonText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: 14,
     },
   });
 
