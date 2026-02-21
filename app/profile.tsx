@@ -2,6 +2,7 @@ import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { ApiService } from '@/services/api';
 import { ErrorHandler, SessionManager } from '@/utils';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -32,10 +33,6 @@ const ProfileScreen: React.FC = () => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
@@ -63,14 +60,6 @@ const ProfileScreen: React.FC = () => {
       return 'Invalid email format.';
     }
 
-    const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmNewPassword);
-    if (wantsPasswordChange) {
-      if (!currentPassword) return 'Current password is required.';
-      if (!newPassword) return 'New password is required.';
-      if (newPassword.length < 4) return 'New password must be at least 4 characters.';
-      if (newPassword !== confirmNewPassword) return 'New passwords do not match.';
-    }
-
     return null;
   };
 
@@ -93,12 +82,6 @@ const ProfileScreen: React.FC = () => {
 
       if (middleName.trim()) payload.middle_name = middleName.trim();
       if (email.trim()) payload.email = email.trim();
-
-      const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmNewPassword);
-      if (wantsPasswordChange) {
-        payload.current_password = currentPassword;
-        payload.new_password = newPassword;
-      }
 
       const res = await ApiService.updateProfile(payload);
       if (!res?.success) {
@@ -132,10 +115,6 @@ const ProfileScreen: React.FC = () => {
         );
       }
 
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-
       Alert.alert('Success', res?.message || 'Profile updated successfully');
     } catch (error) {
       const info = ErrorHandler.handle(error);
@@ -152,7 +131,13 @@ const ProfileScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Profile</Text>
+          <View style={styles.headerRow}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.title}>Profile</Text>
+            <View style={styles.headerSpacer} />
+          </View>
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Account</Text>
@@ -202,40 +187,13 @@ const ProfileScreen: React.FC = () => {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Change Password (optional)</Text>
+            <Text style={styles.sectionTitle}>Change Password</Text>
 
-            <Text style={styles.label}>Current Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Current password"
-              placeholderTextColor={colors.textSecondary}
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-
-            <Text style={styles.label}>New Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="New password"
-              placeholderTextColor={colors.textSecondary}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-
-            <Text style={styles.label}>Confirm New Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm new password"
-              placeholderTextColor={colors.textSecondary}
-              value={confirmNewPassword}
-              onChangeText={setConfirmNewPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                Password changes are not available in the mobile app. Please use the web application to change your password. Sorry for the inconvenience.
+              </Text>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -269,10 +227,23 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
       padding: Spacing.lg,
       paddingBottom: Spacing.xxl,
     },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.lg,
+    },
+    backButton: {
+      padding: Spacing.sm,
+      marginLeft: -Spacing.sm,
+    },
+    headerSpacer: {
+      width: 40,
+    },
     title: {
       ...Typography.h2,
       color: colors.text,
-      marginBottom: Spacing.lg,
+      flex: 1,
+      textAlign: 'center',
     },
     card: {
       backgroundColor: colors.card,
@@ -343,6 +314,18 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
       color: colors.text,
       fontSize: Typography.body.fontSize,
       fontWeight: '600',
+    },
+    infoBox: {
+      backgroundColor: colors.surface,
+      borderRadius: BorderRadius.md,
+      padding: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    infoText: {
+      ...Typography.body,
+      color: colors.textSecondary,
+      lineHeight: 22,
     },
   });
 

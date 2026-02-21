@@ -1,4 +1,4 @@
-import { BranchList, EmployeeTimeLogsModal, EmptyState, LoadingState, LogoutModal, OvertimeModal, SyncStatus } from '@/components';
+import { BranchList, EmployeeTimeLogsModal, EmptyState, LoadingState, OvertimeModal, SyncStatus } from '@/components';
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { ApiService } from '@/services/api';
@@ -8,16 +8,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HomeScreen: React.FC = () => {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -26,11 +27,10 @@ const HomeScreen: React.FC = () => {
   const [timeInBranchMap, setTimeInBranchMap] = useState<Map<number, string>>(new Map());
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState('');
-  const [logoutVisible, setLogoutVisible] = useState(false);
-  const [branchSearch, setBranchSearch] = useState('');
   const [attendanceHelpVisible, setAttendanceHelpVisible] = useState(false);
   const helpOpenedRef = useRef(false);
 
+  const [branchSearch, setBranchSearch] = useState('');
   // Transfer modal state
   const [transferModalVisible, setTransferModalVisible] = useState(false);
   const [transferEmployee, setTransferEmployee] = useState<Employee | null>(null);
@@ -47,12 +47,15 @@ const HomeScreen: React.FC = () => {
   const [selfBranchPickerVisible, setSelfBranchPickerVisible] = useState(false);
   const [overtimeModalVisible, setOvertimeModalVisible] = useState(false);
   const [selectedSelfBranch, setSelectedSelfBranch] = useState<Branch | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [isSearchSticky, setIsSearchSticky] = useState(false);
   
   const router = useRouter();
   const params = useLocalSearchParams();
   const { resolvedTheme } = useThemeMode();
   const colors = Colors[resolvedTheme];
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
 
   // Initialize data
   useEffect(() => {
@@ -562,16 +565,6 @@ const HomeScreen: React.FC = () => {
     }
   }, []);
 
-  const handleLogout = () => {
-    setLogoutVisible(true);
-  };
-
-  const confirmLogout = async () => {
-    setLogoutVisible(false);
-    await SessionManager.clearSession();
-    router.replace('/login');
-  };
-
   const getTotalPresentCount = () => {
     const loadedEmployees = branches.flatMap(b => b.employees || []);
     if (loadedEmployees.length > 0) {
@@ -755,6 +748,16 @@ const HomeScreen: React.FC = () => {
     }
   }, [currentUser, userAttendance]);
 
+  const handleListScroll = useCallback(
+    (e: any) => {
+      const y = Number(e?.nativeEvent?.contentOffset?.y ?? 0);
+      if (!Number.isFinite(y) || headerHeight <= 0) return;
+      const nextSticky = y >= headerHeight;
+      setIsSearchSticky((prev) => (prev === nextSticky ? prev : nextSticky));
+    },
+    [headerHeight]
+  );
+
   if (isLoading) {
     return <LoadingState message="Loading attendance system..." />;
   }
@@ -767,137 +770,134 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <LogoutModal
-        visible={logoutVisible}
-        onCancel={() => setLogoutVisible(false)}
-        onConfirm={confirmLogout}
-      />
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.welcomeText}>
-              Welcome, {currentUser?.firstName || 'User'}!
-            </Text>
-            <Text style={styles.dateText}>{currentDate}</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={24} color={colors.buttonPrimaryText} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{getTotalPresentCount()}</Text>
-            <Text style={styles.statLabel}>Total Timed In</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{getBranchCount()}</Text>
-            <Text style={styles.statLabel}>Projects</Text>
-          </View>
-          <TouchableOpacity style={styles.statItem} onPress={() => setOvertimeModalVisible(true)}>
-            <Ionicons name="time-outline" size={24} color={colors.buttonPrimaryText} />
-            <Text style={styles.statLabel}>Overtime</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Self Time In Card */}
-        <View style={[
-          styles.selfTimeCard,
-          userAttendance?.isTimedIn && styles.selfTimeCardActive
-        ]}>
-          <View style={styles.selfTimeInfo}>
-            <View style={[
-              styles.selfTimeIconContainer,
-              userAttendance?.isTimedIn && styles.selfTimeIconContainerActive
-            ]}>
-              <Ionicons 
-                name={userAttendance?.isTimedIn ? "time" : "timer-outline"} 
-                size={24} 
-                color={userAttendance?.isTimedIn ? '#4CAF50' : colors.buttonPrimaryText} 
-              />
-            </View>
-            <View style={styles.selfTimeTextContainer}>
-              <Text style={[
-                styles.selfTimeStatus,
-                userAttendance?.isTimedIn && styles.selfTimeStatusActive
-              ]}>
-                {userAttendance?.isTimedIn ? 'Currently Timed In' : 'Not Timed In'}
-              </Text>
-              {userAttendance?.branchName && (
-                <Text style={[
-                  styles.selfTimeBranch,
-                  userAttendance?.isTimedIn && styles.selfTimeBranchActive
-                ]}>
-                  📍 {userAttendance.branchName}
-                </Text>
-              )}
-              {userAttendance?.timeIn && (
-                <Text style={[
-                  styles.selfTimeDetail,
-                  userAttendance?.isTimedIn && styles.selfTimeDetailActive
-                ]}>
-                  In: {new Date(userAttendance.timeIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              )}
-            </View>
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.selfTimeButton,
-              userAttendance?.isTimedIn ? styles.selfTimeOutButton : styles.selfTimeInButton,
-              isUserTimeLoading && styles.selfTimeButtonDisabled,
-            ]}
-            onPress={userAttendance?.isTimedIn ? handleSelfTimeOut : handleSelfTimeIn}
-            disabled={isUserTimeLoading}
+      <BranchList
+        branches={visibleBranches}
+        onBranchPress={handleBranchPress}
+        onEmployeeTimeIn={handleEmployeeTimeIn}
+        onEmployeeTimeOut={handleEmployeeTimeOut}
+        onEmployeeTransfer={handleEmployeeTransfer}
+        onEmployeeLongPress={(employee) => handleEmployeeLongPress(employee)}
+        onEmployeeSetOtHours={handleEmployeeSetOtHours}
+        onEmployeeMarkAbsent={handleEmployeeMarkAbsent}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+        onScroll={handleListScroll}
+        scrollEventThrottle={16}
+        headerComponent={
+          <View
+            style={styles.headerContent}
+            onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
           >
-            {isUserTimeLoading ? (
-              <Text style={styles.selfTimeButtonText}>...</Text>
-            ) : (
-              <Text style={styles.selfTimeButtonText}>
-                {userAttendance?.isTimedIn ? 'Time Out' : 'Time In'}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+            <View style={styles.headerTop}>
+              <Text style={styles.welcomeText}>Attendance</Text>
+              <Text style={styles.dateText}>{currentDate}</Text>
+            </View>
+            
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{getTotalPresentCount()}</Text>
+                <Text style={styles.statLabel}>Total Timed In</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{getBranchCount()}</Text>
+                <Text style={styles.statLabel}>Projects</Text>
+              </View>
+            </View>
 
-      <View style={styles.branchSearchWrap}>
-        <TextInput
-          style={styles.branchSearchInput}
-          placeholder="Search project..."
-          placeholderTextColor={colors.textSecondary}
-          value={branchSearch}
-          onChangeText={setBranchSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-      </View>
+            <TouchableOpacity style={styles.overtimeButton} onPress={() => setOvertimeModalVisible(true)}>
+              <Ionicons name="time-outline" size={20} color={colors.buttonPrimaryText} />
+              <Text style={styles.overtimeButtonText}>Overtime</Text>
+            </TouchableOpacity>
 
-      {/* Branch List */}
-      {visibleBranches.length > 0 ? (
-        <BranchList
-          branches={visibleBranches}
-          onBranchPress={handleBranchPress}
-          onEmployeeTimeIn={handleEmployeeTimeIn}
-          onEmployeeTimeOut={handleEmployeeTimeOut}
-          onEmployeeTransfer={handleEmployeeTransfer}
-          onEmployeeLongPress={(employee) => handleEmployeeLongPress(employee)}
-          onEmployeeSetOtHours={handleEmployeeSetOtHours}
-          onEmployeeMarkAbsent={handleEmployeeMarkAbsent}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          style={styles.branchList}
-        />
-      ) : (
-        <EmptyState
-          title="No Projects Available"
-          message="Pull down to refresh or check your connection."
-          actionText="Refresh"
-          onAction={handleRefresh}
-          icon="🏢"
-        />
-      )}
+            <View style={[
+              styles.selfTimeCard,
+              userAttendance?.isTimedIn && styles.selfTimeCardActive
+            ]}>
+              <View style={styles.selfTimeInfo}>
+                <View style={[
+                  styles.selfTimeIconContainer,
+                  userAttendance?.isTimedIn && styles.selfTimeIconContainerActive
+                ]}>
+                  <Ionicons 
+                    name={userAttendance?.isTimedIn ? "time" : "timer-outline"} 
+                    size={24} 
+                    color={userAttendance?.isTimedIn ? '#4CAF50' : colors.buttonPrimaryText} 
+                  />
+                </View>
+                <View style={styles.selfTimeTextContainer}>
+                  <Text style={[
+                    styles.selfTimeStatus,
+                    userAttendance?.isTimedIn && styles.selfTimeStatusActive
+                  ]}>
+                    {userAttendance?.isTimedIn ? 'Currently Timed In' : 'Not Timed In'}
+                  </Text>
+                  {userAttendance?.branchName && (
+                    <Text style={[
+                      styles.selfTimeBranch,
+                      userAttendance?.isTimedIn && styles.selfTimeBranchActive
+                    ]}>
+                      📍 {userAttendance.branchName}
+                    </Text>
+                  )}
+                  {userAttendance?.timeIn && (
+                    <Text style={[
+                      styles.selfTimeDetail,
+                      userAttendance?.isTimedIn && styles.selfTimeDetailActive
+                    ]}>
+                      In: {new Date(userAttendance.timeIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.selfTimeButton,
+                  userAttendance?.isTimedIn ? styles.selfTimeOutButton : styles.selfTimeInButton,
+                  isUserTimeLoading && styles.selfTimeButtonDisabled,
+                ]}
+                onPress={userAttendance?.isTimedIn ? handleSelfTimeOut : handleSelfTimeIn}
+                disabled={isUserTimeLoading}
+              >
+                {isUserTimeLoading ? (
+                  <Text style={styles.selfTimeButtonText}>...</Text>
+                ) : (
+                  <Text style={styles.selfTimeButtonText}>
+                    {userAttendance?.isTimedIn ? 'Time Out' : 'Time In'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        }
+        searchComponent={
+          <View
+            style={[
+              styles.branchSearchWrap,
+              isSearchSticky && { paddingTop: Spacing.md + insets.top },
+            ]}
+          >
+            <TextInput
+              style={styles.branchSearchInput}
+              placeholder="Search project..."
+              placeholderTextColor={colors.textSecondary}
+              value={branchSearch}
+              onChangeText={setBranchSearch}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+        }
+        stickySearch
+        emptyComponent={
+          <EmptyState
+            title="No Projects Available"
+            message="Pull down to refresh or check your connection."
+            actionText="Refresh"
+            onAction={handleRefresh}
+            icon="🏢"
+          />
+        }
+      />
 
       {/* Sync Status */}
       <SyncStatus
@@ -1055,6 +1055,12 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    headerContent: {
+      backgroundColor: colors.tint,
+      paddingTop: 60,
+      paddingHorizontal: Spacing.lg,
+      paddingBottom: Spacing.lg,
+    },
     helpOverlay: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.35)',
@@ -1131,16 +1137,7 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
       color: colors.buttonPrimaryText,
       fontWeight: '800',
     },
-    header: {
-      backgroundColor: colors.tint,
-      paddingTop: 60,
-      paddingHorizontal: Spacing.lg,
-      paddingBottom: Spacing.lg,
-    },
     headerTop: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
       marginBottom: Spacing.lg,
     },
     welcomeText: {
@@ -1152,11 +1149,6 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
       ...Typography.body,
       color: colors.buttonPrimaryText,
       opacity: 0.9,
-    },
-    logoutButton: {
-      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-      borderRadius: 20,
-      padding: Spacing.sm,
     },
     statsContainer: {
       flexDirection: 'row',
@@ -1178,15 +1170,29 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
       color: colors.buttonPrimaryText,
       opacity: 0.9,
     },
-    branchList: {
-      flex: 1,
-      marginTop: Spacing.sm,
+    overtimeButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.15)',
+      borderRadius: BorderRadius.md,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      marginTop: Spacing.md,
+      gap: 8,
+    },
+    overtimeButtonText: {
+      ...Typography.body,
+      color: colors.buttonPrimaryText,
+      fontWeight: '600',
     },
     branchSearchWrap: {
       paddingHorizontal: Spacing.lg,
       paddingTop: Spacing.md,
       paddingBottom: Spacing.sm,
       backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
     branchSearchInput: {
       backgroundColor: colors.surface,

@@ -390,6 +390,38 @@ class ProcurementService {
 
     return response.json();
   }
+
+  // Resubmit a rejected PR (for Engineer or Procurement)
+  async resubmitPurchaseRequest(prId: number, payload: Partial<CreatePurchaseRequestPayload>): Promise<{ message: string; prId: number; pr_number: string }> {
+    const response = await fetch(`${this.baseURL}/api/purchase-requests/${prId}/resubmit`, {
+      method: 'PUT',
+      headers: await this.getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to resubmit purchase request (${response.status})`);
+    }
+
+    return response.json();
+  }
+
+  // Update a rejected PR without resubmitting (for editing before resubmit)
+  async updatePurchaseRequest(prId: number, payload: Partial<CreatePurchaseRequestPayload>): Promise<{ message: string; prId: number }> {
+    const response = await fetch(`${this.baseURL}/api/purchase-requests/${prId}`, {
+      method: 'PUT',
+      headers: await this.getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to update purchase request (${response.status})`);
+    }
+
+    return response.json();
+  }
 }
 
 export const procurementService = new ProcurementService();

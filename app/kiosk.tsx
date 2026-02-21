@@ -3,7 +3,7 @@ import { useThemeMode } from '@/hooks/use-theme-mode';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -35,6 +35,19 @@ export default function KioskScreen(): React.ReactElement {
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<QRResult | null>(null);
+
+  const scanCooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanLockRef = useRef(false);
+  const lastScanAtRef = useRef(0);
+  const SCAN_COOLDOWN_MS = 2000;
+
+  useEffect(() => {
+    return () => {
+      if (scanCooldownTimeoutRef.current) {
+        clearTimeout(scanCooldownTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const parseEmployeeFromQR = useCallback((text: string): { empId: number; empCode: string } | null => {
     try {
@@ -114,7 +127,19 @@ export default function KioskScreen(): React.ReactElement {
   }, []);
 
   const handleBarCodeScanned = useCallback(async ({ data }: { data: string }) => {
-    if (scanned || loading) return;
+    const now = Date.now();
+    if (scanLockRef.current || scanned || loading) return;
+    if (now - lastScanAtRef.current < SCAN_COOLDOWN_MS) return;
+
+    scanLockRef.current = true;
+    lastScanAtRef.current = now;
+
+    if (scanCooldownTimeoutRef.current) {
+      clearTimeout(scanCooldownTimeoutRef.current);
+    }
+    scanCooldownTimeoutRef.current = setTimeout(() => {
+      scanLockRef.current = false;
+    }, SCAN_COOLDOWN_MS);
 
     setScanned(true);
     setLoading(true);

@@ -48,7 +48,7 @@ const ProcurementScreen: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<ProcurementUserLocal | null>(null);
 
   // State
-  const [activeTab, setActiveTab] = useState<'items' | 'my-prs' | 'review-prs' | 'approve-prs' | 'approve-pos' | 'employees'>('items');
+  const [activeTab, setActiveTab] = useState<'items' | 'my-prs' | 'rejected-prs' | 'all-prs' | 'review-prs' | 'approve-prs' | 'approve-pos' | 'employees'>('items');
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -111,6 +111,22 @@ const ProcurementScreen: React.FC = () => {
 
   // Notification badge count
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
+  // Edit/Resubmit states
+  const [showEditPRModal, setShowEditPRModal] = useState(false);
+  const [editingPR, setEditingPR] = useState<MyPurchaseRequest | null>(null);
+  const [editPRDetails, setEditPRDetails] = useState<any>(null);
+  const [isLoadingEditDetails, setIsLoadingEditDetails] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    purpose: '',
+    remarks: '',
+    date_needed: '',
+    project: '',
+    project_address: '',
+  });
+  const [editItems, setEditItems] = useState<any[]>([]);
+  const [rejectedPRs, setRejectedPRs] = useState<MyPurchaseRequest[]>([]);
+  const [allPRs, setAllPRs] = useState<MyPurchaseRequest[]>([]);
 
   // Fetch notification count - defined before useEffect
   const fetchNotificationCount = useCallback(async () => {
@@ -240,6 +256,30 @@ const ProcurementScreen: React.FC = () => {
       }
     } catch (error) {
       console.log('Failed to load PRs:', error);
+    }
+  };
+
+  // Load rejected PRs for engineers (PRs rejected by procurement that need to be edited and resubmitted)
+  const loadRejectedPRs = async () => {
+    setIsLoading(true);
+    try {
+      const data = await procurementService.getMyPurchaseRequests();
+      // Filter to only show PRs created by the current user that are rejected
+      if (currentUser) {
+        const myRejectedPRs = data.filter((pr: MyPurchaseRequest) => 
+          ((pr as any).requested_by === currentUser.id ||
+           (pr as any).requester_id === currentUser.id ||
+           (pr as any).created_by === currentUser.id) &&
+          pr.status?.toLowerCase() === 'rejected'
+        );
+        setRejectedPRs(myRejectedPRs);
+      } else {
+        setRejectedPRs(data.filter((pr: MyPurchaseRequest) => pr.status?.toLowerCase() === 'rejected'));
+      }
+    } catch (error) {
+      console.log('Failed to load rejected PRs:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -713,6 +753,170 @@ const ProcurementScreen: React.FC = () => {
     }
   };
 
+  // Load all PRs for engineers (view all purchase requests in the system)
+  const loadAllPRs = async () => {
+    setIsLoading(true);
+    try {
+      const baseURL = 'https://procurement-api.xandree.com';
+      const token = await procurementService.getToken();
+      
+      // Fetch all PRs without status filter
+      const response = await fetch(`${baseURL}/api/purchase-requests`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const prs = data.purchaseRequests || data.data || [];
+        setAllPRs(prs);
+      } else {
+        console.log('Failed to load all PRs:', response.status);
+      }
+    } catch (error) {
+      console.log('Failed to load all PRs:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const loadEditPRDetails = async (prId: number) => {
+    setIsLoadingEditDetails(true);
+    try {
+      const baseURL = 'https://procurement-api.xandree.com';
+      const token = await procurementService.getToken();
+      
+      const response = await fetch(`${baseURL}/api/purchase-requests/${prId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const prDetails = data.data || data.purchaseRequest || data;
+        setEditPRDetails(prDetails);
+        
+        // Initialize form data with current PR values
+        setEditFormData({
+          purpose: prDetails.purpose || '',
+          remarks: prDetails.remarks || '',
+          date_needed: prDetails.date_needed ? prDetails.date_needed.split('T')[0] : '',
+          project: prDetails.project || '',
+          project_address: prDetails.project_address || '',
+        });
+        
+        // Initialize edit items with current items
+        setEditItems(prDetails.items?.map((item: any) => ({
+          ...item,
+          quantity: item.quantity,
+          remarks: item.remarks || '',
+        })) || []);
+      } else {
+        console.log('Failed to load PR details for edit:', response.status);
+        Alert.alert('Error', 'Failed to load PR details');
+      }
+    } catch (error) {
+      console.log('Error loading PR details for edit:', error);
+      Alert.alert('Error', 'Failed to load PR details');
+    } finally {
+      setIsLoadingEditDetails(false);
+    }
+  };
+
+  // Handle opening edit modal for a PR
+  const handleEditPR = (pr: MyPurchaseRequest) => {
+    setEditingPR(pr);
+    loadEditPRDetails(pr.id);
+    setShowEditPRModal(true);
+  };
+
+  // Handle resubmitting a PR after edits
+  const handleResubmitPR = async () => {
+    if (!editingPR) return;
+    
+    // Validate required fields
+    if (!editFormData.purpose.trim()) {
+      Alert.alert('Required', 'Please enter the purpose of this purchase request');
+      return;
+    }
+    
+    if (!editFormData.date_needed) {
+      Alert.alert('Required', 'Please select a date needed');
+      return;
+    }
+
+    if (!editFormData.project.trim()) {
+      Alert.alert('Required', 'Please select a project');
+      return;
+    }
+    
+    if (editItems.length === 0) {
+      Alert.alert('Required', 'PR must have at least one item');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const prItems = editItems.map(item => ({
+        item_id: item.item_id,
+        quantity: parseInt(item.quantity) || 1,
+        remarks: item.remarks || '',
+      }));
+
+      const response = await procurementService.resubmitPurchaseRequest(editingPR.id, {
+        purpose: editFormData.purpose.trim(),
+        remarks: editFormData.remarks.trim() || undefined,
+        date_needed: editFormData.date_needed ? editFormData.date_needed.split('T')[0] : '',
+        project: editFormData.project.trim(),
+        project_address: editFormData.project_address.trim() || undefined,
+        items: prItems,
+      });
+
+      // Close modal and reset form immediately
+      setShowEditPRModal(false);
+      setEditingPR(null);
+      setEditFormData({
+        purpose: '',
+        remarks: '',
+        date_needed: '',
+        project: '',
+        project_address: '',
+      });
+      setEditItems([]);
+      
+      // Refresh PR lists
+      loadMyPRs();
+      loadRejectedPRs();
+      loadProcurementReviewPRs();
+      
+      // Show success message
+      Alert.alert(
+        'Success',
+        `Purchase Request ${response.pr_number} resubmitted successfully!`
+      );
+    } catch (error: any) {
+      console.log('🔴 PR Resubmit Error:', error);
+      Alert.alert('Error', error.message || 'Failed to resubmit purchase request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Update quantity for edit items
+  const updateEditItemQuantity = (index: number, quantity: string) => {
+    const num = parseInt(quantity, 10);
+    if (isNaN(num) || num < 1) return;
+    
+    setEditItems(prev => {
+      const newItems = [...prev];
+      newItems[index] = { ...newItems[index], quantity: num };
+      return newItems;
+    });
+  };
+
   const toggleItemSelection = useCallback((item: Item) => {
     setSelectedItems(prev => {
       if (prev[item.id]) {
@@ -871,21 +1075,48 @@ const ProcurementScreen: React.FC = () => {
     );
   };
 
-  const renderMyPR = ({ item }: { item: MyPurchaseRequest }) => (
-    <View style={styles.prCard}>
-      <View style={styles.prHeader}>
-        <Text style={styles.prNumber}>{item.pr_number}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-          <Text style={styles.statusText}>{item.status}</Text>
+  const openPRPreview = (pr: MyPurchaseRequest) => {
+    setSelectedPRForApproval(pr);
+    loadPRDetails(pr.id);
+    setShowPRDetailModal(true);
+  };
+
+  const renderMyPR = ({ item }: { item: MyPurchaseRequest }) => {
+    const status = item.status?.toLowerCase() || '';
+    const canEditFromMyPRs = userRole === 'procurement' && status === 'rejected';
+
+    return (
+      <TouchableOpacity
+        style={styles.prCard}
+        activeOpacity={0.7}
+        onPress={() => openPRPreview(item)}
+      >
+        <View style={styles.prHeader}>
+          <Text style={styles.prNumber}>{item.pr_number}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+            <Text style={styles.statusText}>{item.status}</Text>
+          </View>
         </View>
-      </View>
-      <Text style={styles.prPurpose} numberOfLines={2}>{item.purpose}</Text>
-      <View style={styles.prFooter}>
-        <Text style={styles.prDate}>{formatDate(item.created_at)}</Text>
-        <Text style={styles.prAmount}>₱{item.total_amount?.toLocaleString() || '0'}</Text>
-      </View>
-    </View>
-  );
+        <Text style={styles.prPurpose} numberOfLines={2}>{item.purpose}</Text>
+        <View style={styles.prFooter}>
+          <Text style={styles.prDate}>{formatDate(item.created_at)}</Text>
+          <Text style={styles.prAmount}>₱{item.total_amount?.toLocaleString() || '0'}</Text>
+        </View>
+        {canEditFromMyPRs && (
+          <View style={[styles.approvalCardFooter, { marginTop: Spacing.md }]}>
+            <View />
+            <TouchableOpacity
+              style={[styles.approvalButton, { backgroundColor: '#D4A853', width: 'auto', paddingHorizontal: 12 }]}
+              onPress={() => handleEditPR(item)}
+            >
+              <Ionicons name="create" size={18} color="#fff" />
+              <Text style={{ color: '#fff', marginLeft: 6, fontWeight: '600', fontSize: 12 }}>Edit & Resubmit</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -1030,10 +1261,28 @@ const ProcurementScreen: React.FC = () => {
               <Text style={[styles.tabText, activeTab === 'items' && styles.tabTextActive]}>Items</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              style={[styles.tab, activeTab === 'all-prs' && styles.tabActive]}
+              onPress={() => {
+                setActiveTab('all-prs');
+                loadAllPRs();
+              }}
+            >
+              <Text style={[styles.tabText, activeTab === 'all-prs' && styles.tabTextActive]}>All PRs</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.tab, activeTab === 'my-prs' && styles.tabActive]}
               onPress={() => setActiveTab('my-prs')}
             >
               <Text style={[styles.tabText, activeTab === 'my-prs' && styles.tabTextActive]}>My PRs</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'rejected-prs' && styles.tabActive]}
+              onPress={() => {
+                setActiveTab('rejected-prs');
+                loadRejectedPRs();
+              }}
+            >
+              <Text style={[styles.tabText, activeTab === 'rejected-prs' && styles.tabTextActive]}>Rejected PRs</Text>
             </TouchableOpacity>
           </>
         )}
@@ -1252,81 +1501,109 @@ const ProcurementScreen: React.FC = () => {
         <View style={{ flex: 1 }}>
           <View style={styles.infoCard}>
             <Text style={styles.infoCardTitle}>Procurement Review</Text>
-            <Text style={styles.infoCardSubtitle}>Review PRs from Super Admin, set unit costs, select suppliers, and approve/reject</Text>
+            <Text style={styles.infoCardSubtitle}>Review PRs from Super Admin, set unit costs, select suppliers, and approve/reject. PRs rejected by Super Admin need to be edited and resubmitted.</Text>
           </View>
           <FlatList
             data={procurementReviewPRs}
-            renderItem={({ item }: { item: MyPurchaseRequest }) => (
-              <TouchableOpacity
-                style={styles.approvalCard}
-                onPress={() => {
-                  setSelectedPRForApproval(item);
-                  loadPRDetails(item.id);
-                  loadSuppliers();
-                  setSelectedSupplier(null);
-                  setReviewItems([]);
-                  setShowProcurementReviewModal(true);
-                }}
-              >
-                <View style={styles.approvalCardHeader}>
-                  <View>
-                    <Text style={styles.approvalCardId}>{item.pr_number}</Text>
-                    <Text style={styles.approvalCardPurpose}>{item.purpose}</Text>
-                    <Text style={styles.approvalCardRequester}>
-                      By: {(item as any).requester_first_name && (item as any).requester_last_name 
-                           ? `${(item as any).requester_first_name} ${(item as any).requester_last_name}`
-                           : (item as any).requester_name || 
-                             (item as any).requester || 
-                             (item as any).employee_name || 
-                             (item as any).created_by_name || 
-                             'Unknown'}
-                    </Text>
-                  </View>
-                  <View style={[styles.approvalCardBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                    <Text style={styles.approvalCardBadgeText}>{item.status}</Text>
-                  </View>
-                </View>
-                <View style={styles.approvalCardFooter}>
-                  <Text style={styles.approvalCardDate}>{formatDate(item.created_at)}</Text>
-                  {canActOnPR(item.status) ? (
-                    <View style={styles.approvalButtons}>
-                      <TouchableOpacity
-                        style={[styles.approvalButton, styles.rejectButton]}
-                        onPress={() => {
-                          setSelectedPRForApproval(item);
-                          loadPRDetails(item.id);
-                          setRejectionReason('');
-                          setShowRejectionModal(true);
-                        }}
-                        disabled={isProcessing}
-                      >
-                        <Ionicons name="close-circle" size={24} color="#fff" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.approvalButton, styles.approveButton]}
-                        onPress={() => {
-                          setSelectedPRForApproval(item);
-                          loadPRDetails(item.id);
-                          loadSuppliers();
-                          setSelectedSupplier(null);
-                          setReviewItems([]);
-                          setShowProcurementReviewModal(true);
-                        }}
-                        disabled={isProcessing}
-                      >
-                        <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.waitingBadge}>
-                      <Text style={styles.waitingBadgeText}>
-                        {item.status?.toLowerCase() === 'for super admin final approval' ? 'Awaiting Super Admin' : 'In Progress'}
+            renderItem={({ item }: { item: MyPurchaseRequest }) => {
+              // Check if this is a rejected PR (has rejection_reason from Super Admin)
+              const isRejectedBySuperAdmin = !!(item as any).rejection_reason || (item as any).was_rejected === true;
+              
+              return (
+                <TouchableOpacity
+                  style={[styles.approvalCard, isRejectedBySuperAdmin && { borderLeftWidth: 4, borderLeftColor: '#F44336' }]}
+                  onPress={() => {
+                    if (isRejectedBySuperAdmin) {
+                      // For rejected PRs, open edit modal
+                      handleEditPR(item);
+                    } else {
+                      // For new PRs, open review modal
+                      setSelectedPRForApproval(item);
+                      loadPRDetails(item.id);
+                      loadSuppliers();
+                      setSelectedSupplier(null);
+                      setReviewItems([]);
+                      setShowProcurementReviewModal(true);
+                    }
+                  }}
+                >
+                  <View style={styles.approvalCardHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.approvalCardId}>{item.pr_number}</Text>
+                      <Text style={styles.approvalCardPurpose}>{item.purpose}</Text>
+                      <Text style={styles.approvalCardRequester}>
+                        By: {(item as any).requester_first_name && (item as any).requester_last_name 
+                             ? `${(item as any).requester_first_name} ${(item as any).requester_last_name}`
+                             : (item as any).requester_name || 
+                               (item as any).requester || 
+                               (item as any).employee_name || 
+                               (item as any).created_by_name || 
+                               'Unknown'}
                       </Text>
+                      {isRejectedBySuperAdmin && (item as any).rejection_reason && (
+                        <Text style={[styles.approvalCardRequester, { color: '#F44336', marginTop: 4 }]}>
+                          <Ionicons name="warning" size={12} color="#F44336" /> Rejected: {(item as any).rejection_reason}
+                        </Text>
+                      )}
                     </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            )}
+                    <View style={[styles.approvalCardBadge, { backgroundColor: getStatusColor(item.status) }]}>
+                      <Text style={styles.approvalCardBadgeText}>{item.status}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.approvalCardFooter}>
+                    <Text style={styles.approvalCardDate}>{formatDate(item.created_at)}</Text>
+                    {isRejectedBySuperAdmin ? (
+                      // Show Edit & Resubmit button for rejected PRs
+                      <TouchableOpacity
+                        style={styles.editResubmitButton}
+                        onPress={() => handleEditPR(item)}
+                      >
+                        <Ionicons name="refresh" size={16} color="#fff" />
+                        <Text style={styles.editResubmitButtonText} numberOfLines={1}>
+                          Edit & Resubmit
+                        </Text>
+                      </TouchableOpacity>
+                    ) : canActOnPR(item.status) ? (
+                      // Show approve/reject buttons for new PRs
+                      <View style={styles.approvalButtons}>
+                        <TouchableOpacity
+                          style={[styles.approvalButton, styles.rejectButton]}
+                          onPress={() => {
+                            setSelectedPRForApproval(item);
+                            loadPRDetails(item.id);
+                            setRejectionReason('');
+                            setShowRejectionModal(true);
+                          }}
+                          disabled={isProcessing}
+                        >
+                          <Ionicons name="close-circle" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.approvalButton, styles.approveButton]}
+                          onPress={() => {
+                            setSelectedPRForApproval(item);
+                            loadPRDetails(item.id);
+                            loadSuppliers();
+                            setSelectedSupplier(null);
+                            setReviewItems([]);
+                            setShowProcurementReviewModal(true);
+                          }}
+                          disabled={isProcessing}
+                        >
+                          <Ionicons name="checkmark-circle" size={24} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.waitingBadge}>
+                        <Text style={styles.waitingBadgeText}>
+                          {item.status?.toLowerCase() === 'for super admin final approval' ? 'Awaiting Super Admin' : 'In Progress'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={styles.prList}
             showsVerticalScrollIndicator={false}
@@ -1386,6 +1663,113 @@ const ProcurementScreen: React.FC = () => {
               <View style={styles.emptyState}>
                 <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
                 <Text style={styles.emptyText}>No employees found</Text>
+              </View>
+            }
+          />
+        </View>
+      ) : activeTab === 'all-prs' ? (
+        /* All PRs List - for Engineers to view all purchase requests */
+        <View style={{ flex: 1 }}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardTitle}>All Purchase Requests</Text>
+            <Text style={styles.infoCardSubtitle}>View all PRs in the system across all users and statuses.</Text>
+          </View>
+          <FlatList
+            data={allPRs}
+            renderItem={({ item }: { item: MyPurchaseRequest }) => (
+              <TouchableOpacity
+                style={styles.approvalCard}
+                onPress={() => openPRPreview(item)}
+              >
+                <View style={styles.approvalCardHeader}>
+                  <View>
+                    <Text style={styles.approvalCardId}>{item.pr_number}</Text>
+                    <Text style={styles.approvalCardPurpose}>{item.purpose}</Text>
+                    <Text style={styles.approvalCardRequester}>
+                      By: {(item as any).requester_first_name && (item as any).requester_last_name 
+                        ? `${(item as any).requester_first_name} ${(item as any).requester_last_name}`
+                        : (item as any).requester_name || 
+                          (item as any).requester || 
+                          (item as any).employee_name || 
+                          (item as any).created_by_name || 
+                          'Unknown'}
+                    </Text>
+                  </View>
+                  <View style={[styles.approvalCardBadge, { backgroundColor: getStatusColor(item.status) }]}>
+                    <Text style={styles.approvalCardBadgeText}>{item.status}</Text>
+                  </View>
+                </View>
+                <View style={styles.approvalCardFooter}>
+                  <Text style={styles.approvalCardDate}>{formatDate(item.created_at)}</Text>
+                  <Text style={styles.prAmount}>₱{item.total_amount?.toLocaleString() || '0'}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={styles.prList}
+            showsVerticalScrollIndicator={false}
+            refreshing={isLoading}
+            onRefresh={loadAllPRs}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
+                <Text style={styles.emptyText}>No purchase requests found</Text>
+              </View>
+            }
+          />
+        </View>
+      ) : activeTab === 'rejected-prs' ? (
+        /* Rejected PRs List - for Engineers to edit and resubmit */
+        <View style={{ flex: 1 }}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardTitle}>Rejected Purchase Requests</Text>
+            <Text style={styles.infoCardSubtitle}>These PRs were rejected by Procurement. Edit and resubmit them.</Text>
+          </View>
+          <FlatList
+            data={rejectedPRs}
+            renderItem={({ item }: { item: MyPurchaseRequest }) => (
+              <TouchableOpacity
+                style={[styles.approvalCard, { borderLeftWidth: 4, borderLeftColor: '#F44336' }]}
+                onPress={() => handleEditPR(item)}
+              >
+                <View style={styles.approvalCardHeader}>
+                  <View>
+                    <Text style={styles.approvalCardId}>{item.pr_number}</Text>
+                    <Text style={styles.approvalCardPurpose}>{item.purpose}</Text>
+                    {(item as any).rejection_reason && (
+                      <Text style={[styles.approvalCardRequester, { color: '#F44336', marginTop: 4 }]}>
+                        Reason: {(item as any).rejection_reason}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={[styles.approvalCardBadge, { backgroundColor: getStatusColor(item.status) }]}>
+                    <Text style={styles.approvalCardBadgeText}>{item.status}</Text>
+                  </View>
+                </View>
+                <View style={styles.approvalCardFooter}>
+                  <Text style={styles.approvalCardDate}>{formatDate(item.created_at)}</Text>
+                  <TouchableOpacity
+                    style={styles.editResubmitButton}
+                    onPress={() => handleEditPR(item)}
+                  >
+                    <Ionicons name="create" size={16} color="#fff" />
+                    <Text style={styles.editResubmitButtonText} numberOfLines={1}>
+                      Edit & Resubmit
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={styles.prList}
+            showsVerticalScrollIndicator={false}
+            refreshing={isLoading}
+            onRefresh={loadRejectedPRs}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Ionicons name="checkmark-circle-outline" size={48} color={colors.textSecondary} />
+                <Text style={styles.emptyText}>No rejected PRs to fix</Text>
+                <Text style={[styles.emptyText, { fontSize: 12, marginTop: 8 }]}>Great job! All your PRs are in good standing.</Text>
               </View>
             }
           />
@@ -1754,6 +2138,9 @@ const ProcurementScreen: React.FC = () => {
                   style={styles.dropdownItem}
                   onPress={() => {
                     setProject(item.branch_name);
+                    if (showEditPRModal) {
+                      setEditFormData(prev => ({ ...prev, project: item.branch_name }));
+                    }
                     setShowProjectDropdown(false);
                   }}
                 >
@@ -1840,12 +2227,24 @@ const ProcurementScreen: React.FC = () => {
                       <Text style={styles.detailLabel}>Items ({selectedPRDetails.items.length})</Text>
                       <View style={styles.detailItemsList}>
                         {selectedPRDetails.items.map((item: any, index: number) => (
-                          <View key={index} style={styles.detailItemRow}>
-                            <View style={styles.detailItemInfo}>
-                              <Text style={styles.detailItemName}>{item.item_name}</Text>
-                              <Text style={styles.detailItemCode}>{item.item_code}</Text>
+                          <View key={index} style={[styles.detailItemRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                              <View style={styles.detailItemInfo}>
+                                <Text style={styles.detailItemName}>{item.item_name}</Text>
+                                <Text style={styles.detailItemCode}>{item.item_code}</Text>
+                              </View>
+                              <Text style={styles.detailItemQty}>Qty: {item.quantity}</Text>
                             </View>
-                            <Text style={styles.detailItemQty}>Qty: {item.quantity}</Text>
+                            {Array.isArray(item.rejection_remarks) && item.rejection_remarks.length > 0 && (
+                              <View style={[styles.detailSection, { backgroundColor: '#FFEBEE', padding: Spacing.md, borderRadius: BorderRadius.md, borderLeftWidth: 4, borderLeftColor: '#F44336', marginTop: Spacing.sm, width: '100%' }]}>
+                                <Text style={[styles.detailLabel, { color: '#F44336' }]}>Item Remark(s)</Text>
+                                {item.rejection_remarks.map((r: any, i: number) => (
+                                  <Text key={i} style={[styles.detailValue, { color: '#D32F2F', marginTop: i === 0 ? 0 : 6 }]}>
+                                    {r.remark}
+                                  </Text>
+                                ))}
+                              </View>
+                            )}
                           </View>
                         ))}
                       </View>
@@ -2151,6 +2550,189 @@ const ProcurementScreen: React.FC = () => {
 
       {/* Supplier Dropdown Modal */}
       {/* Removed Supplier Dropdown Modal */}
+
+      {/* Edit/Resubmit PR Modal */}
+      <Modal
+        visible={showEditPRModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowEditPRModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit & Resubmit PR - {editingPR?.pr_number}</Text>
+              <TouchableOpacity onPress={() => setShowEditPRModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingEditDetails ? (
+              <View style={styles.centerContent}>
+                <ActivityIndicator size="large" color={colors.tint} />
+                <Text style={{ marginTop: Spacing.md, color: colors.textSecondary }}>Loading PR details...</Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Purpose */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Purpose *</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="Enter the purpose of this purchase request"
+                    placeholderTextColor={colors.textSecondary}
+                    value={editFormData.purpose}
+                    onChangeText={(text) => setEditFormData(prev => ({ ...prev, purpose: text }))}
+                    multiline
+                  />
+                </View>
+
+                {/* Date Needed & Project */}
+                <View style={styles.formRow}>
+                  <View style={[styles.formGroup, { flex: 1 }]}>
+                    <Text style={styles.formLabel}>Date Needed *</Text>
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={editFormData.date_needed ? styles.datePickerText : styles.datePickerPlaceholder}>
+                        {editFormData.date_needed ? editFormData.date_needed.split('T')[0] : 'Select date'}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={editFormData.date_needed ? new Date(editFormData.date_needed) : new Date()}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={(_event: any, selectedDate?: Date) => {
+                          setShowDatePicker(false);
+                          if (selectedDate) {
+                            const yyyyMmDd = selectedDate.toISOString().split('T')[0];
+                            setEditFormData(prev => ({ ...prev, date_needed: yyyyMmDd }));
+                          }
+                        }}
+                        minimumDate={new Date()}
+                      />
+                    )}
+                  </View>
+                  <View style={[styles.formGroup, { flex: 1 }]}>
+                    <Text style={styles.formLabel}>Project *</Text>
+                    <TouchableOpacity
+                      style={styles.dropdownButton}
+                      onPress={() => setShowProjectDropdown(true)}
+                    >
+                      <Text style={editFormData.project ? styles.dropdownButtonText : styles.dropdownPlaceholder}>
+                        {editFormData.project || 'Select project'}
+                      </Text>
+                      <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Project Address */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Project Address</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="Enter project address"
+                    placeholderTextColor={colors.textSecondary}
+                    value={editFormData.project_address}
+                    onChangeText={(text) => setEditFormData(prev => ({ ...prev, project_address: text }))}
+                  />
+                </View>
+
+                {/* Remarks */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Remarks (Optional)</Text>
+                  <TextInput
+                    style={[styles.formInput, styles.textArea]}
+                    placeholder="Additional notes..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={editFormData.remarks}
+                    onChangeText={(text) => setEditFormData(prev => ({ ...prev, remarks: text }))}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+
+                {/* Items List (editable) */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Items</Text>
+                  {editItems.map((item, index) => (
+                    <View key={index} style={[styles.reviewItemCard, { backgroundColor: colors.surface, borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.md }]}> 
+                      <Text style={styles.detailItemName}>{item.item_name}</Text>
+                      <Text style={styles.detailItemCode}>{item.item_code}</Text>
+                      
+                      <View style={[styles.formRow, { marginTop: Spacing.sm }]}>
+                        <View style={[styles.formGroup, { flex: 1, marginBottom: 0 }]}>
+                          <Text style={styles.formLabel}>Qty</Text>
+                          <TextInput
+                            style={[styles.formInput, { paddingVertical: Spacing.sm }]}
+                            value={String(item.quantity)}
+                            onChangeText={(text) => updateEditItemQuantity(index, text)}
+                            keyboardType="number-pad"
+                          />
+                        </View>
+                        <View style={[styles.formGroup, { flex: 1, marginBottom: 0 }]}>
+                          <Text style={styles.formLabel}>Unit</Text>
+                          <TextInput
+                            style={[styles.formInput, { paddingVertical: Spacing.sm }]}
+                            value={item.unit}
+                            editable={false}
+                          />
+                        </View>
+                      </View>
+
+                      {Array.isArray((item as any).rejection_remarks) && (item as any).rejection_remarks.length > 0 && (
+                        <View style={[styles.detailSection, { backgroundColor: '#FFEBEE', padding: Spacing.md, borderRadius: BorderRadius.md, borderLeftWidth: 4, borderLeftColor: '#F44336', marginTop: Spacing.sm, marginBottom: 0 }]}> 
+                          <Text style={[styles.detailLabel, { color: '#F44336' }]}>Item Remark(s)</Text>
+                          {(item as any).rejection_remarks.map((r: any, i: number) => (
+                            <Text key={i} style={[styles.detailValue, { color: '#D32F2F', marginTop: i === 0 ? 0 : 6 }]}> 
+                              {r.remark}
+                            </Text>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </View>
+
+                {/* Rejection Reason Display */}
+                {editPRDetails?.rejection_reason && (
+                  <View style={[styles.detailSection, { backgroundColor: '#FFEBEE', padding: Spacing.md, borderRadius: BorderRadius.md, borderLeftWidth: 4, borderLeftColor: '#F44336' }]}>
+                    <Text style={[styles.detailLabel, { color: '#F44336' }]}>Rejection Reason</Text>
+                    <Text style={[styles.detailValue, { color: '#D32F2F' }]}>{editPRDetails.rejection_reason}</Text>
+                  </View>
+                )}
+              </ScrollView>
+            )}
+
+            {/* Modal Actions */}
+            {!isLoadingEditDetails && (
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setShowEditPRModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+                  onPress={handleResubmitPR}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Resubmit PR</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -2803,6 +3385,23 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors], borderLight:
       borderRadius: BorderRadius.md,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    editResubmitButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#D4A853',
+      borderRadius: BorderRadius.md,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      minHeight: 36,
+      maxWidth: 160,
+    },
+    editResubmitButtonText: {
+      ...Typography.caption,
+      color: '#fff',
+      marginLeft: Spacing.xs,
+      fontWeight: '600',
     },
     approveButton: {
       backgroundColor: '#4CAF50',

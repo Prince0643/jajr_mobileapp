@@ -1,7 +1,8 @@
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useThemeMode } from '@/hooks/use-theme-mode';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 type Props = {
   visible: boolean;
@@ -22,7 +23,8 @@ const LogoutModal: React.FC<Props> = ({
   onCancel,
   onConfirm,
 }) => {
-  const colors = Colors.dark;
+  const { resolvedTheme } = useThemeMode();
+  const colors = Colors[resolvedTheme];
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -45,7 +47,7 @@ const LogoutModal: React.FC<Props> = ({
                 styles.secondaryButton,
                 {
                   backgroundColor: colors.buttonSecondary,
-                  borderColor: colors.borderLight || colors.border,
+                  borderColor: colors.border,
                   opacity: pressed ? 0.85 : 1,
                 },
               ]}

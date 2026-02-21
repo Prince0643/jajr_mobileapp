@@ -3,13 +3,13 @@ import { useThemeMode } from '@/hooks/use-theme-mode';
 import { ApiService } from '@/services/api';
 import React, { useMemo, useState } from 'react';
 import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -330,15 +330,6 @@ const SalaryScreen: React.FC = () => {
           <View style={styles.headerTextCol}>
             <Text style={styles.title}>Payslip</Text>
             <Text style={styles.subtitle}>Earnings, deductions, and net pay preview</Text>
-          </View>
-
-          <View style={styles.headerActions}>
-            <Pressable style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>Export</Text>
-            </Pressable>
-            <Pressable style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>Generate</Text>
-            </Pressable>
           </View>
         </View>
 

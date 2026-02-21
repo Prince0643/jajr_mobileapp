@@ -1,9 +1,9 @@
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
 import { useThemeMode } from '@/hooks/use-theme-mode';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const HelpSupportScreen: React.FC = () => {
@@ -14,17 +14,15 @@ const HelpSupportScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <Stack.Screen options={{ title: 'Help & Support', headerShown: true }} />
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-            <Text style={styles.backText}>Back</Text>
-          </Pressable>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Help & Support</Text>
+          <View style={styles.headerSpacer} />
         </View>
 
-        <Text style={styles.title}>Help & Support</Text>
         <Text style={styles.subtitle}>Quick guides and step-by-step instructions</Text>
 
         <View style={styles.card}>
@@ -68,27 +66,23 @@ const createStyles = (colors: (typeof Colors)[keyof typeof Colors]) =>
       marginBottom: Spacing.md,
     },
     backButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      paddingVertical: Spacing.sm,
-      paddingHorizontal: Spacing.sm,
-      borderRadius: BorderRadius.md,
+      padding: Spacing.sm,
+      marginLeft: -Spacing.sm,
     },
-    backText: {
-      ...Typography.body,
-      color: colors.text,
-      fontWeight: '600',
+    headerSpacer: {
+      width: 40,
     },
     title: {
       ...Typography.h2,
       color: colors.text,
-      marginBottom: Spacing.xs,
+      flex: 1,
+      textAlign: 'center',
     },
     subtitle: {
       ...Typography.caption,
       color: colors.textSecondary,
       marginBottom: Spacing.lg,
+      textAlign: 'center',
     },
     card: {
       backgroundColor: colors.card,

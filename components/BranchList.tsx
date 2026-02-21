@@ -4,6 +4,8 @@ import { Branch, Employee } from '@/types';
 import React, { useState } from 'react';
 import {
     FlatList,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
     RefreshControl,
     StyleSheet,
     Text,
@@ -25,7 +27,16 @@ interface BranchListProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   style?: ViewStyle;
+  headerComponent?: React.ReactElement | null;
+  searchComponent?: React.ReactNode;
+  stickySearch?: boolean;
+  emptyComponent?: React.ReactElement | null;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  scrollEventThrottle?: number;
 }
+
+type SearchRow = { __type: 'search' };
+type BranchListRow = Branch | SearchRow;
 
 const BranchList: React.FC<BranchListProps> = ({
   branches,
@@ -39,6 +50,12 @@ const BranchList: React.FC<BranchListProps> = ({
   onRefresh,
   isRefreshing = false,
   style,
+  headerComponent,
+  searchComponent,
+  stickySearch = false,
+  emptyComponent,
+  onScroll,
+  scrollEventThrottle,
 }) => {
   const { resolvedTheme } = useThemeMode();
   const colors = Colors[resolvedTheme];
@@ -149,18 +166,47 @@ const BranchList: React.FC<BranchListProps> = ({
     </View>
   );
 
+  const data: BranchListRow[] = searchComponent
+    ? ([{ __type: 'search' } as SearchRow, ...branches] as BranchListRow[])
+    : (branches as BranchListRow[]);
+
+  const effectiveStickyHeaderIndices =
+    stickySearch && searchComponent
+      ? [headerComponent ? 1 : 0]
+      : undefined;
+
+  const effectiveEmptyComponent = emptyComponent ?? renderEmptyState();
+
+  const renderItem = ({ item, index }: { item: BranchListRow; index: number }) => {
+    if ((item as SearchRow).__type === 'search') {
+      return <View style={styles.searchRowContainer}>{searchComponent}</View>;
+    }
+    const branch = item as Branch;
+    const branchIndex = searchComponent ? index - 1 : index;
+    return renderBranchItem({ item: branch, index: branchIndex });
+  };
+
+  const keyExtractor = (item: BranchListRow) => {
+    if ((item as SearchRow).__type === 'search') return 'search';
+    return (item as Branch).branchName;
+  };
+
   return (
     <View style={[styles.container, style]}>
       <FlatList
-        data={branches}
-        renderItem={renderBranchItem}
-        keyExtractor={(item) => item.branchName}
+        data={data}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={headerComponent ?? undefined}
+        onScroll={onScroll}
+        scrollEventThrottle={scrollEventThrottle}
         refreshControl={
           onRefresh ? (
             <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
           ) : undefined
         }
-        ListEmptyComponent={renderEmptyState}
+        stickyHeaderIndices={effectiveStickyHeaderIndices}
+        ListFooterComponent={branches.length === 0 ? effectiveEmptyComponent : undefined}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={branches.length === 0 ? styles.emptyListContainer : undefined}
       />
@@ -184,6 +230,9 @@ const BranchList: React.FC<BranchListProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  searchRowContainer: {
+    backgroundColor: 'transparent',
   },
   emptyContainer: {
     flex: 1,
